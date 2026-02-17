@@ -1,8 +1,10 @@
 import * as React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { analyzeTextSchema } from '@/lib/validations'
-import { useAnalysis, useRewrite } from '@/hooks'
+import { useAnalysis } from '@/hooks'
+import { useAnalysisStore } from '@/stores'
 import { useToast } from '@/components/common/Toast'
 import {
   Card,
@@ -14,40 +16,23 @@ import {
   Textarea,
   FormField,
   Badge,
-  Select,
-  Tabs,
-  TabPanel,
   Skeleton,
 } from '@/components/common'
 import { cn } from '@/lib/utils'
-import { REWRITE_STYLES } from '@/lib/constants'
 import {
   Brain,
   RefreshCw,
   Copy,
   Check,
   Sparkles,
-  MessageSquare,
-  ArrowRight,
   Wand2,
 } from 'lucide-react'
 
-const styleOptions = Object.entries(REWRITE_STYLES).map(([key, value]) => ({
-  value,
-  label: key.charAt(0) + key.slice(1).toLowerCase(),
-}))
-
 /**
- * Analyze page - Text analysis and rewriting (web)
+ * Analyze page - Text analysis with professional visualization (web)
  */
 export default function AnalyzePage() {
-  const [activeTab, setActiveTab] = React.useState('analyze')
   const toast = useToast()
-
-  const tabs = [
-    { value: 'analyze', label: 'Analyze', icon: Brain },
-    { value: 'rewrite', label: 'Rewrite', icon: Wand2 },
-  ]
 
   return (
     <div className="space-y-6">
@@ -55,30 +40,23 @@ export default function AnalyzePage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Text Analysis</h1>
         <p className="text-muted-foreground mt-1">
-          Analyze your text for emotional insights or rewrite it with AI
+          Analyze your text for emotional insights and personality traits
         </p>
       </div>
 
-      {/* Tabs */}
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-
-      {/* Tab Content */}
-      <TabPanel value="analyze" activeTab={activeTab}>
-        <AnalyzeTab toast={toast} />
-      </TabPanel>
-
-      <TabPanel value="rewrite" activeTab={activeTab}>
-        <RewriteTab toast={toast} />
-      </TabPanel>
+      {/* Main Content */}
+      <AnalyzeContent toast={toast} />
     </div>
   )
 }
 
 /**
- * Analyze tab content
+ * Analyze content - uses global store for text sharing
  */
-function AnalyzeTab({ toast }) {
+function AnalyzeContent({ toast }) {
+  const navigate = useNavigate()
   const { analyze, result, isLoading, reset } = useAnalysis()
+  const { setOriginalText, setAnalysisResult } = useAnalysisStore()
   const [copied, setCopied] = React.useState(false)
 
   const {
@@ -96,11 +74,25 @@ function AnalyzeTab({ toast }) {
 
   const onSubmit = async (data) => {
     try {
-      await analyze(data.text)
+      const analysisResult = await analyze(data.text)
+      // Save to global store for rewrite page
+      setOriginalText(data.text)
+      setAnalysisResult(analysisResult)
       toast.success('Analysis Complete', 'Your text has been analyzed successfully.')
     } catch (error) {
       toast.error('Analysis Failed', error.message)
     }
+  }
+
+  // Navigate to rewrite page with text
+  const goToRewrite = () => {
+    if (textValue) {
+      setOriginalText(textValue)
+      if (result) {
+        setAnalysisResult(result)
+      }
+    }
+    navigate('/rewrite')
   }
 
   const copyToClipboard = (text) => {
@@ -167,7 +159,7 @@ function AnalyzeTab({ toast }) {
           {isLoading ? (
             <AnalysisResultSkeleton />
           ) : result ? (
-            <AnalysisResult result={result} onCopy={copyToClipboard} copied={copied} />
+            <AnalysisResult result={result} onCopy={copyToClipboard} copied={copied} onRewrite={goToRewrite} />
           ) : (
             <EmptyResultState />
           )}
@@ -180,7 +172,7 @@ function AnalyzeTab({ toast }) {
 /**
  * Analysis result display - Professional & Visual
  */
-function AnalysisResult({ result, onCopy, copied }) {
+function AnalysisResult({ result, onCopy, copied, onRewrite }) {
   // Extract analysis data from nested response
   const analysis = result.analysis || result
   const sentiment = analysis.sentiment || {}
@@ -380,190 +372,25 @@ function AnalysisResult({ result, onCopy, copied }) {
         </ul>
       </div>
 
-      {/* Copy Button */}
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => onCopy(JSON.stringify(result, null, 2))}
-      >
-        {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-        {copied ? 'Copied!' : 'Copy Full Results'}
-      </Button>
-    </div>
-  )
-}
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        {/* Rewrite Button - Primary CTA */}
+        <Button
+          className="flex-1 gap-2"
+          onClick={onRewrite}
+        >
+          <Wand2 className="h-4 w-4" />
+          Rewrite This Text
+        </Button>
 
-/**
- * Rewrite tab content
- */
-function RewriteTab({ toast }) {
-  const { rewrite, result, isLoading, reset } = useRewrite()
-  const [copied, setCopied] = React.useState(false)
-  const [style, setStyle] = React.useState('professional')
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-  } = useForm({
-    defaultValues: { text: '', context: '' },
-  })
-
-  const textValue = watch('text')
-  const charCount = textValue?.length || 0
-
-  const onSubmit = async (data) => {
-    if (data.text.length < 10) {
-      toast.error('Text too short', 'Please enter at least 10 characters.')
-      return
-    }
-    try {
-      await rewrite(data.text, style, data.context)
-      toast.success('Rewrite Complete', 'Your text has been rewritten successfully.')
-    } catch (error) {
-      toast.error('Rewrite Failed', error.message)
-    }
-  }
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-    toast.success('Copied!', 'Rewritten text copied to clipboard.')
-  }
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Input Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5 text-primary" />
-            Text to Rewrite
-          </CardTitle>
-          <CardDescription>
-            Enter your text and choose a style
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <FormField label="Your Text" error={errors.text?.message}>
-              <Textarea
-                placeholder="Enter the text you want to rewrite..."
-                className="min-h-[150px] resize-none"
-                {...register('text')}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                <span>{charCount} / 5000 characters</span>
-              </div>
-            </FormField>
-
-            <FormField label="Writing Style">
-              <Select
-                options={styleOptions}
-                value={style}
-                onChange={setStyle}
-                placeholder="Select a style"
-              />
-            </FormField>
-
-            <FormField label="Context (Optional)">
-              <Textarea
-                placeholder="Add any context that might help (e.g., 'This is an email to my manager')"
-                className="min-h-[80px] resize-none"
-                {...register('context')}
-              />
-            </FormField>
-
-            <div className="flex gap-3">
-              <Button type="submit" className="flex-1" loading={isLoading}>
-                <Wand2 className="h-4 w-4 mr-2" />
-                Rewrite Text
-              </Button>
-              {result && (
-                <Button type="button" variant="outline" onClick={reset}>
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Results Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            Rewritten Text
-          </CardTitle>
-          <CardDescription>
-            AI-rewritten version of your text
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <RewriteResultSkeleton />
-          ) : result ? (
-            <RewriteResult result={result} onCopy={copyToClipboard} copied={copied} />
-          ) : (
-            <EmptyResultState icon={Wand2} text="Your rewritten text will appear here" />
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-/**
- * Rewrite result display
- */
-function RewriteResult({ result, onCopy, copied }) {
-  // Backend returns: { original, rewritten, highlighted_words, improvements, success, error }
-  const rewrittenText = result.rewritten || result.rewritten_text || result.text || ''
-
-  return (
-    <div className="space-y-4">
-      <div className="p-4 rounded-lg bg-muted/50 border">
-        <p className="text-sm whitespace-pre-wrap">{rewrittenText}</p>
+        {/* Copy Button */}
+        <Button
+          variant="outline"
+          onClick={() => onCopy(JSON.stringify(result, null, 2))}
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        </Button>
       </div>
-
-      {result.improvements && result.improvements.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Improvements Made</h4>
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            {result.improvements.map((improvement, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <ArrowRight className="h-4 w-4 mt-0.5 text-primary" />
-                {improvement}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {result.highlighted_words && result.highlighted_words.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Key Changes</h4>
-          <div className="flex flex-wrap gap-2">
-            {result.highlighted_words.map((word, i) => (
-              <span key={i} className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary">
-                {word}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => onCopy(rewrittenText)}
-      >
-        {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-        {copied ? 'Copied!' : 'Copy Text'}
-      </Button>
     </div>
   )
 }
@@ -571,13 +398,13 @@ function RewriteResult({ result, onCopy, copied }) {
 /**
  * Empty result state
  */
-function EmptyResultState({ icon: Icon = Sparkles, text = 'Your analysis results will appear here' }) {
+function EmptyResultState() {
   return (
     <div className="flex flex-col items-center justify-center h-[300px] text-center">
       <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Icon className="h-8 w-8 text-muted-foreground" />
+        <Sparkles className="h-8 w-8 text-muted-foreground" />
       </div>
-      <p className="text-muted-foreground">{text}</p>
+      <p className="text-muted-foreground">Your analysis results will appear here</p>
     </div>
   )
 }
@@ -613,19 +440,3 @@ function AnalysisResultSkeleton() {
   )
 }
 
-/**
- * Loading skeleton for rewrite
- */
-function RewriteResultSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-4 w-3/4" />
-      </div>
-      <Skeleton className="h-10 w-full" />
-    </div>
-  )
-}

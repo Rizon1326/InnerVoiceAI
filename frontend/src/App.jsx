@@ -14,6 +14,7 @@ const LoginPage = React.lazy(() => import('@/pages/web/LoginPage'))
 const RegisterPage = React.lazy(() => import('@/pages/web/RegisterPage'))
 const DashboardPage = React.lazy(() => import('@/pages/web/DashboardPage'))
 const AnalyzePage = React.lazy(() => import('@/pages/web/AnalyzePage'))
+const RewritePage = React.lazy(() => import('@/pages/web/RewritePage'))
 const HistoryPage = React.lazy(() => import('@/pages/web/HistoryPage'))
 const ProgressPage = React.lazy(() => import('@/pages/web/ProgressPage'))
 const SettingsPage = React.lazy(() => import('@/pages/web/SettingsPage'))
@@ -100,6 +101,7 @@ function WebApp() {
           >
             <Route path="/" element={<DashboardPage />} />
             <Route path="/analyze" element={<AnalyzePage />} />
+            <Route path="/rewrite" element={<RewritePage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/progress" element={<ProgressPage />} />
             <Route path="/settings" element={<SettingsPage />} />
