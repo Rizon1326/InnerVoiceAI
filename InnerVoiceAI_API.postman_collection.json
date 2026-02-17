@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "InnerVoiceAI API",
+    "description": "Complete API testing collection for InnerVoiceAI Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "PUBLIC ENDPOINTS",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8000/api/health/",
+            "description": "Verify the API is running"
+          },
+          "response": []
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"john_doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": "http://localhost:8000/api/auth/register/",
+            "description": "Create a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"john_doe\",\n    \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": "http://localhost:8000/api/auth/login/",
+            "description": "Authenticate user and get API token. Save the token from response!"
+          },
+          "response": []
+        },
+        {
+          "name": "Public Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8000/api/statistics/",
+            "description": "Get overall project statistics (no authentication needed)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AUTHENTICATED ENDPOINTS",
+      "item": [
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "http://localhost:8000/api/auth/logout/",
+            "description": "Invalidate user's authentication token"
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"text\": \"I am feeling wonderful today! The weather is amazing and I'm excited about the new project.\"\n}"
+            },
+            "url": "http://localhost:8000/api/analyze/",
+            "description": "Analyze text for sentiment, emotions, and personality"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              }
+            ],
+            "url": "http://localhost:8000/api/history/?limit=10",
+            "description": "Get all analyzed posts for the authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Rewrite Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"text\": \"I hate this situation, everything is terrible.\"\n}"
+            },
+            "url": "http://localhost:8000/api/rewrite/",
+            "description": "Generate AI-improved version of text based on sentiment and personality"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              }
+            ],
+            "url": "http://localhost:8000/api/progress/?days=30",
+            "description": "Get daily emotional snapshots for the last N days"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Emotional Trends",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              }
+            ],
+            "url": "http://localhost:8000/api/progress/trends/?days=30",
+            "description": "Get trend analysis showing emotional improvements over time"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              }
+            ],
+            "url": "http://localhost:8000/api/metrics/",
+            "description": "Get comprehensive effectiveness metrics for the user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Token {{token}}"
+              }
+            ],
+            "url": "http://localhost:8000/api/profile/",
+            "description": "Get complete user profile with all their data and metrics"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
