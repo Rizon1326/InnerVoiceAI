@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { analyzeTextSchema, rewriteTextSchema } from '@/lib/validations'
+import { analyzeTextSchema } from '@/lib/validations'
 import { useAnalysis, useRewrite } from '@/hooks'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -17,10 +17,9 @@ import {
   Select,
   Tabs,
   TabPanel,
-  Progress,
   Skeleton,
 } from '@/components/common'
-import { getEmotionEmoji, getSentimentColor, cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { REWRITE_STYLES } from '@/lib/constants'
 import {
   Brain,
@@ -179,56 +178,126 @@ function AnalyzeTab({ toast }) {
 }
 
 /**
- * Analysis result display
+ * Analysis result display - Professional & Visual
  */
 function AnalysisResult({ result, onCopy, copied }) {
-  const sentiment = result.sentiment || result.sentiment_analysis
-  const emotions = result.emotions || result.emotion_detection
-  const personality = result.personality || result.personality_traits
+  // Extract analysis data from nested response
+  const analysis = result.analysis || result
+  const sentiment = analysis.sentiment || {}
+  const emotions = analysis.emotions || {}
+  const personality = analysis.personality || {}
+
+  // Calculate dominant emotion
+  const emotionEntries = Object.entries(emotions).filter(([k, v]) => k !== 'neutral' && v > 0)
+  const sortedEmotions = emotionEntries.sort((a, b) => b[1] - a[1])
+  const dominantEmotion = sortedEmotions[0]?.[0] || 'neutral'
+  
+  // Sentiment interpretation
+  const sentimentScore = sentiment.score || 0
+  const getSentimentInterpretation = (score) => {
+    if (score >= 0.5) return { text: 'Very Positive', emoji: '🌟', color: 'text-green-500' }
+    if (score >= 0.1) return { text: 'Positive', emoji: '😊', color: 'text-emerald-500' }
+    if (score >= -0.1) return { text: 'Neutral', emoji: '😐', color: 'text-gray-500' }
+    if (score >= -0.5) return { text: 'Negative', emoji: '😔', color: 'text-orange-500' }
+    return { text: 'Very Negative', emoji: '😢', color: 'text-red-500' }
+  }
+  const sentimentInfo = getSentimentInterpretation(sentimentScore)
 
   return (
-    <div className="space-y-6">
-      {/* Sentiment */}
-      {sentiment && (
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium">Sentiment</h4>
+    <div className="space-y-6 fade-in">
+      {/* Overall Sentiment Card */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border p-6">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="relative">
+          <div className="text-sm text-muted-foreground mb-2">Overall Sentiment</div>
           <div className="flex items-center gap-4">
-            <div className={cn('text-3xl font-bold', getSentimentColor(sentiment.score || sentiment))}>
-              {typeof sentiment.score === 'number' ? sentiment.score.toFixed(2) : sentiment.toFixed?.(2) || sentiment}
-            </div>
-            <div className="flex-1">
-              <Progress
-                value={((sentiment.score || sentiment) + 1) * 50}
-                className="h-2"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>Negative</span>
-                <span>Neutral</span>
-                <span>Positive</span>
+            <span className="text-5xl">{sentimentInfo.emoji}</span>
+            <div>
+              <div className={cn('text-3xl font-bold', sentimentInfo.color)}>
+                {sentimentInfo.text}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Score: {(sentimentScore * 100).toFixed(0)}%
               </div>
             </div>
           </div>
-          {sentiment.label && (
-            <Badge variant={sentiment.score > 0 ? 'success' : sentiment.score < 0 ? 'destructive' : 'secondary'}>
-              {sentiment.label}
-            </Badge>
-          )}
+        </div>
+      </div>
+
+      {/* Sentiment Breakdown */}
+      {sentiment.scores && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Sentiment Distribution
+          </h4>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: 'positive', label: 'Positive', color: 'bg-green-500', icon: '👍' },
+              { key: 'neutral', label: 'Neutral', color: 'bg-gray-400', icon: '➖' },
+              { key: 'negative', label: 'Negative', color: 'bg-red-500', icon: '👎' },
+            ].map(({ key, label, color, icon }) => (
+              <div key={key} className="rounded-lg border bg-card p-3 text-center">
+                <div className="text-xl mb-1">{icon}</div>
+                <div className="text-lg font-bold">
+                  {((sentiment.scores[key] || 0) * 100).toFixed(0)}%
+                </div>
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full transition-all duration-500', color)}
+                    style={{ width: `${(sentiment.scores[key] || 0) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Emotions */}
-      {emotions && (
+      {/* Emotions Wheel */}
+      {Object.keys(emotions).length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium">Detected Emotions</h4>
-          <div className="flex flex-wrap gap-2">
-            {(Array.isArray(emotions) ? emotions : Object.entries(emotions)).map((item, i) => {
-              const emotion = Array.isArray(item) ? item[0] : item.emotion || item
-              const score = Array.isArray(item) ? item[1] : item.score
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Emotional Analysis
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {[
+              { key: 'joy', emoji: '😄', color: 'from-yellow-400 to-orange-400' },
+              { key: 'sadness', emoji: '😢', color: 'from-blue-400 to-indigo-400' },
+              { key: 'anger', emoji: '😠', color: 'from-red-400 to-rose-500' },
+              { key: 'fear', emoji: '😨', color: 'from-purple-400 to-violet-500' },
+              { key: 'surprise', emoji: '😲', color: 'from-pink-400 to-fuchsia-500' },
+              { key: 'neutral', emoji: '😐', color: 'from-gray-400 to-slate-500' },
+            ].map(({ key, emoji, color }) => {
+              const value = emotions[key] || 0
+              const isHighest = key === dominantEmotion
               return (
-                <Badge key={i} variant="outline" className="text-sm py-1 px-3">
-                  {getEmotionEmoji(emotion)} {emotion}
-                  {score && <span className="ml-1 text-muted-foreground">({(score * 100).toFixed(0)}%)</span>}
-                </Badge>
+                <div
+                  key={key}
+                  className={cn(
+                    'rounded-lg border p-3 transition-all duration-200',
+                    isHighest ? 'ring-2 ring-primary bg-primary/5 border-primary/20' : 'bg-card hover:bg-accent'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{emoji}</span>
+                    <span className="text-sm font-medium capitalize">
+                      {key}
+                      {isHighest && <span className="ml-1 text-xs text-primary">★</span>}
+                    </span>
+                  </div>
+                  <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-700', color)}
+                      style={{ width: `${value * 100}%` }}
+                    />
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground mt-1">
+                    {(value * 100).toFixed(0)}%
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -236,19 +305,80 @@ function AnalysisResult({ result, onCopy, copied }) {
       )}
 
       {/* Personality Traits */}
-      {personality && Object.keys(personality).length > 0 && (
+      {Object.keys(personality).length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium">Personality Traits</h4>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(personality).slice(0, 6).map(([trait, score]) => (
-              <div key={trait} className="flex items-center justify-between text-sm">
-                <span className="capitalize">{trait.replace('_', ' ')}</span>
-                <span className="text-muted-foreground">{typeof score === 'number' ? `${(score * 100).toFixed(0)}%` : score}</span>
-              </div>
-            ))}
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Personality Insights (Big Five)
+          </h4>
+          <div className="space-y-3">
+            {[
+              { key: 'openness', label: 'Openness', desc: 'Creativity & curiosity', icon: '🎨' },
+              { key: 'conscientiousness', label: 'Conscientiousness', desc: 'Organization & reliability', icon: '📋' },
+              { key: 'extraversion', label: 'Extraversion', desc: 'Social energy & assertiveness', icon: '🗣️' },
+              { key: 'agreeableness', label: 'Agreeableness', desc: 'Cooperation & trust', icon: '🤝' },
+              { key: 'neuroticism', label: 'Emotional Stability', desc: 'Calmness & resilience', icon: '🧘' },
+            ].map(({ key, label, desc, icon }) => {
+              // Personality values come as 0-100 from backend
+              const value = personality[key] || 0
+              const normalizedValue = value > 1 ? value : value * 100
+              return (
+                <div key={key} className="flex items-center gap-3">
+                  <span className="text-xl">{icon}</span>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium">{label}</span>
+                      <span className="text-sm font-bold text-primary">{normalizedValue.toFixed(0)}%</span>
+                    </div>
+                    <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-700"
+                        style={{ width: `${normalizedValue}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
+
+      {/* Insights Summary */}
+      <div className="rounded-lg border bg-gradient-to-r from-primary/5 to-transparent p-4">
+        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Quick Insights
+        </h4>
+        <ul className="space-y-2 text-sm text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            Your text expresses a <strong className="text-foreground">{sentimentInfo.text.toLowerCase()}</strong> tone
+            {dominantEmotion !== 'neutral' && (
+              <> with dominant <strong className="text-foreground">{dominantEmotion}</strong> emotion</>
+            )}.
+          </li>
+          {sentiment.scores?.positive > 0.6 && (
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 mt-0.5">✓</span>
+              Great positivity! Your message radiates optimism and warmth.
+            </li>
+          )}
+          {personality.openness > 70 && (
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">•</span>
+              High openness suggests creative and innovative thinking.
+            </li>
+          )}
+          {personality.agreeableness > 70 && (
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">•</span>
+              Strong agreeableness indicates collaborative and empathetic communication.
+            </li>
+          )}
+        </ul>
+      </div>
 
       {/* Copy Button */}
       <Button
@@ -257,7 +387,7 @@ function AnalysisResult({ result, onCopy, copied }) {
         onClick={() => onCopy(JSON.stringify(result, null, 2))}
       >
         {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-        {copied ? 'Copied!' : 'Copy Results'}
+        {copied ? 'Copied!' : 'Copy Full Results'}
       </Button>
     </div>
   )

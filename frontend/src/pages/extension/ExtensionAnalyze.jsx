@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useAnalysis, useRewrite } from '@/hooks'
 import { useToast } from '@/components/common/Toast'
 import { Button, Textarea, Badge, Select, Tabs, TabPanel } from '@/components/common'
-import { getEmotionEmoji, getSentimentColor, cn } from '@/lib/utils'
+import { getEmotionEmoji, cn } from '@/lib/utils'
 import { REWRITE_STYLES } from '@/lib/constants'
 import { Brain, Wand2, Sparkles, Copy, Check, RefreshCw, Loader2 } from 'lucide-react'
 
@@ -114,47 +114,90 @@ function AnalyzeView({ toast }) {
       {/* Results */}
       {result && (
         <div className="mt-3 flex-1 overflow-y-auto space-y-3">
-          {/* Sentiment */}
-          {result.sentiment && (
-            <div className="p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium">Sentiment</span>
-                <span className={cn('text-lg font-bold', getSentimentColor(result.sentiment.score || result.sentiment))}>
-                  {typeof result.sentiment.score === 'number' 
-                    ? result.sentiment.score.toFixed(2) 
-                    : result.sentiment.toFixed?.(2) || result.sentiment}
-                </span>
-              </div>
-              {result.sentiment.label && (
-                <Badge variant={result.sentiment.score > 0 ? 'success' : 'destructive'} className="text-xs">
-                  {result.sentiment.label}
-                </Badge>
-              )}
-            </div>
-          )}
+          {/* Extract analysis from nested response */}
+          {(() => {
+            const analysis = result.analysis || result
+            const sentiment = analysis.sentiment || {}
+            const emotions = analysis.emotions || {}
+            
+            // Get sentiment interpretation
+            const score = sentiment.score || 0
+            const getSentimentEmoji = (s) => {
+              if (s >= 0.5) return '🌟'
+              if (s >= 0.1) return '😊'
+              if (s >= -0.1) return '😐'
+              if (s >= -0.5) return '😔'
+              return '😢'
+            }
+            
+            // Get dominant emotion
+            const emotionEntries = Object.entries(emotions).filter(([k, v]) => k !== 'neutral' && v > 0)
+            const sortedEmotions = emotionEntries.sort((a, b) => b[1] - a[1]).slice(0, 4)
+            
+            return (
+              <>
+                {/* Sentiment Card */}
+                <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-transparent border">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{getSentimentEmoji(score)}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Sentiment</span>
+                        <Badge 
+                          variant={score > 0 ? 'success' : score < 0 ? 'destructive' : 'secondary'} 
+                          className="text-xs"
+                        >
+                          {sentiment.label || (score > 0 ? 'Positive' : score < 0 ? 'Negative' : 'Neutral')}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div 
+                            className={cn(
+                              'h-full rounded-full transition-all',
+                              score > 0 ? 'bg-green-500' : score < 0 ? 'bg-red-500' : 'bg-gray-400'
+                            )}
+                            style={{ width: `${Math.abs(score) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-bold">{(score * 100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-          {/* Emotions */}
-          {result.emotions && (
-            <div className="p-3 rounded-lg bg-muted/50">
-              <span className="text-xs font-medium block mb-2">Emotions</span>
-              <div className="flex flex-wrap gap-1.5">
-                {(Array.isArray(result.emotions) ? result.emotions : Object.entries(result.emotions)).slice(0, 5).map((item, i) => {
-                  const emotion = Array.isArray(item) ? item[0] : item.emotion || item
-                  return (
-                    <Badge key={i} variant="outline" className="text-xs">
-                      {getEmotionEmoji(emotion)} {emotion}
-                    </Badge>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+                {/* Emotions */}
+                {sortedEmotions.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/50 border">
+                    <span className="text-xs font-medium text-muted-foreground block mb-2">Top Emotions</span>
+                    <div className="space-y-2">
+                      {sortedEmotions.map(([emotion, value]) => (
+                        <div key={emotion} className="flex items-center gap-2">
+                          <span className="text-sm">{getEmotionEmoji(emotion)}</span>
+                          <span className="text-xs capitalize flex-1">{emotion}</span>
+                          <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div 
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${value * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-8 text-right">
+                            {(value * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Copy Button */}
-          <Button variant="outline" size="sm" className="w-full" onClick={copyResults}>
-            {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-            {copied ? 'Copied' : 'Copy Results'}
-          </Button>
+                {/* Copy Button */}
+                <Button variant="outline" size="sm" className="w-full" onClick={copyResults}>
+                  {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                  {copied ? 'Copied' : 'Copy Results'}
+                </Button>
+              </>
+            )
+          })()}
         </div>
       )}
 
