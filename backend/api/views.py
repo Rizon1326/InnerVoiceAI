@@ -1,4 +1,6 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Post, Analysis
@@ -9,6 +11,7 @@ from services.emotion_detector import EmotionDetector
 from services.personality_analyzer import PersonalityAnalyzer
 from services.gemini_service import GeminiService
 from services.text_rewriter import TextRewriter
+from services.progress_tracker import ProgressTracker
 
 
 # Initialize services
@@ -25,8 +28,11 @@ def health_check(request):
     return Response({'success': True, 'message': 'API running'})
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def analyze_text(request):
     try:
+        user = request.user
         text = request.data.get('text', '').strip()
         
         if not text or len(text) < 3:
@@ -57,8 +63,12 @@ def analyze_text(request):
         )
         personality = personality_result['traits']
         
-        # Create records
-        post = Post.objects.create(text=text, language=language)
+        # Create records with user association
+        post = Post.objects.create(
+            user=user,
+            text=text,
+            language=language
+        )
         analysis = Analysis.objects.create(
             post=post,
             sentiment_label=sentiment['label'],
@@ -79,6 +89,9 @@ def analyze_text(request):
             personality_neuroticism=int(personality['neuroticism'] * 100),
         )
         
+        # Update daily progress
+        ProgressTracker.update_daily_progress(user)
+        
         serializer = PostSerializer(post)
         return Response({
             'success': True,
@@ -92,8 +105,13 @@ def analyze_text(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def get_history(request):
-    posts = Post.objects.all()[:20]
+    user = request.user
+    limit = int(request.query_params.get('limit', 20))
+    
+    posts = Post.objects.filter(user=user)[:limit]
     serializer = PostSerializer(posts, many=True)
     return Response({
         'success': True,
@@ -101,8 +119,11 @@ def get_history(request):
     })
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def rewrite_text(request):
     try:
+        user = request.user
         text = request.data.get('text', '').strip()
         post_id = request.data.get('post_id')
         
@@ -118,7 +139,7 @@ def rewrite_text(request):
         # Get or create analysis
         if post_id:
             try:
-                post = Post.objects.get(id=post_id)
+                post = Post.objects.get(id=post_id, user=user)
                 analysis = post.analysis
             except:
                 return Response({
@@ -132,7 +153,7 @@ def rewrite_text(request):
             personality_result = personality_analyzer.analyze(text, sentiment['score'], emotions)
             
             # Create post and analysis
-            post = Post.objects.create(text=text, language=language)
+            post = Post.objects.create(user=user, text=text, language=language)
             analysis = Analysis.objects.create(
                 post=post,
                 sentiment_label=sentiment['label'],
