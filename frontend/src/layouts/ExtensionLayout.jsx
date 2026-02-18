@@ -52,7 +52,7 @@ export default function ExtensionLayout({ children, activeTab, onTabChange }) {
 }
 
 /**
- * Extension header component
+ * Extension header component with user info and actions
  */
 function ExtensionHeader({ user, resolvedTheme, toggleTheme, onLogout, onSettingsClick }) {
   return (
