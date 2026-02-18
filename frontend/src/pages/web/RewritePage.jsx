@@ -126,20 +126,26 @@ export default function RewritePage() {
   const hasAnalysis = analysisResult !== null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Link to="/analyze">
-              <Button variant="ghost" size="sm" className="gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10 transition-all duration-300"
+              >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Analyze
               </Button>
             </Link>
           </div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Wand2 className="h-8 w-8 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/30">
+              <Wand2 className="h-5 w-5 text-white" />
+            </div>
             AI Text Rewriter
           </h1>
           <p className="text-muted-foreground mt-1">

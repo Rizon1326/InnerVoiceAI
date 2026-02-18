@@ -141,6 +141,26 @@ function AnalyzeContent({ toast }) {
               )}
             </div>
           </form>
+
+          {/* Rewrite Suggestion Button - Always Visible */}
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <button
+              type="button"
+              onClick={goToRewrite}
+              className="rewrite-cta-btn w-full group relative flex items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold overflow-hidden"
+            >
+              {/* Animated gradient background */}
+              <span className="rewrite-cta-bg absolute inset-0 rounded-xl" />
+              {/* Shimmer sweep */}
+              <span className="rewrite-cta-shimmer absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100" />
+              {/* Content */}
+              <span className="relative flex items-center gap-2 text-white">
+                <Wand2 className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-12" />
+                Rewrite Suggestion
+                <span className="text-blue-200 text-xs font-normal">→</span>
+              </span>
+            </button>
+          </div>
         </CardContent>
       </Card>
 
@@ -375,13 +395,18 @@ function AnalysisResult({ result, onCopy, copied, onRewrite }) {
       {/* Action Buttons */}
       <div className="flex gap-3">
         {/* Rewrite Button - Primary CTA */}
-        <Button
-          className="flex-1 gap-2"
+        <button
+          type="button"
+          className="rewrite-cta-btn flex-1 group relative flex items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold overflow-hidden"
           onClick={onRewrite}
         >
-          <Wand2 className="h-4 w-4" />
-          Rewrite This Text
-        </Button>
+          <span className="rewrite-cta-bg absolute inset-0 rounded-xl" />
+          <span className="rewrite-cta-shimmer absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100" />
+          <span className="relative flex items-center gap-2 text-white">
+            <Wand2 className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-12" />
+            Rewrite This Text
+          </span>
+        </button>
 
         {/* Copy Button */}
         <Button

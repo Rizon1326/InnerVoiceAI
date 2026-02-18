@@ -353,3 +353,98 @@ input[type="number"] {
 .sentiment-bg-negative { background-color: hsl(0, 84%, 60% / 0.1); }
 .sentiment-bg-neutral { background-color: hsl(var(--muted)); }
 .sentiment-bg-mixed { background-color: hsl(38, 92%, 50% / 0.1); }
+
+/* ============================================
+   Sidebar - Dark Glass
+   ============================================ */
+
+.sidebar-glass {
+  background: linear-gradient(180deg, hsl(224 71% 5%) 0%, hsl(224 71% 4%) 100%);
+  border-color: hsl(216 34% 14%);
+}
+
+/* Active nav item */
+.sidebar-nav-active {
+  background: linear-gradient(135deg, hsl(221 83% 53% / 0.15) 0%, hsl(221 83% 53% / 0.08) 100%);
+  border: 1px solid hsl(221 83% 53% / 0.25);
+  box-shadow: 0 0 12px hsl(221 83% 53% / 0.12), inset 0 1px 0 hsl(221 83% 70% / 0.1);
+}
+
+/* Active indicator bar */
+.sidebar-indicator {
+  box-shadow: 0 0 8px hsl(221 83% 60% / 0.8);
+}
+
+/* ============================================
+   Page Transition
+   ============================================ */
+
+.page-transition {
+  will-change: opacity, transform;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(6px) scale(0.995);
+}
+
+/* ============================================
+   Rewrite CTA Button
+   ============================================ */
+
+.rewrite-cta-btn {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+  box-shadow:
+    0 4px 15px hsl(221 83% 53% / 0.35),
+    0 0 0 1px hsl(221 83% 53% / 0.2);
+}
+
+.rewrite-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 25px hsl(221 83% 53% / 0.5),
+    0 0 0 1px hsl(221 83% 60% / 0.4),
+    0 0 40px hsl(221 83% 53% / 0.15);
+}
+
+.rewrite-cta-btn:active {
+  transform: translateY(0px);
+  box-shadow:
+    0 2px 8px hsl(221 83% 53% / 0.3),
+    0 0 0 1px hsl(221 83% 53% / 0.2);
+}
+
+.rewrite-cta-bg {
+  background: linear-gradient(135deg, hsl(221 83% 45%) 0%, hsl(210 100% 55%) 50%, hsl(230 80% 60%) 100%);
+  transition: opacity 0.25s ease;
+}
+
+.rewrite-cta-btn:hover .rewrite-cta-bg {
+  background: linear-gradient(135deg, hsl(221 83% 50%) 0%, hsl(210 100% 60%) 50%, hsl(230 80% 65%) 100%);
+}
+
+/* Shimmer sweep on hover */
+.rewrite-cta-shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    hsl(0 0% 100% / 0.18) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  transition: background-position 0.5s ease, opacity 0.2s ease;
+}
+
+.rewrite-cta-btn:hover .rewrite-cta-shimmer {
+  background-position: 200% 0;
+}
