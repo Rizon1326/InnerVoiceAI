@@ -56,7 +56,7 @@ export default function AnalyzePage() {
 function AnalyzeContent({ toast }) {
   const navigate = useNavigate()
   const { analyze, result, isLoading, reset } = useAnalysis()
-  const { setOriginalText, setAnalysisResult } = useAnalysisStore()
+  const { originalText, setOriginalText, setAnalysisResult } = useAnalysisStore()
   const [copied, setCopied] = React.useState(false)
 
   const {
@@ -64,19 +64,32 @@ function AnalyzeContent({ toast }) {
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm({
     resolver: zodResolver(analyzeTextSchema),
-    defaultValues: { text: '' },
+    defaultValues: { text: originalText || '' },
   })
+
+  // Restore persisted text when navigating back (e.g. from Rewrite page)
+  React.useEffect(() => {
+    if (originalText) {
+      setValue('text', originalText, { shouldValidate: false, shouldDirty: false })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const textValue = watch('text')
   const charCount = textValue?.length || 0
 
+  // Persist text to global store as the user types so it survives route changes
+  React.useEffect(() => {
+    setOriginalText(textValue || '')
+  }, [textValue, setOriginalText])
+
   const onSubmit = async (data) => {
     try {
       const analysisResult = await analyze(data.text)
-      // Save to global store for rewrite page
-      setOriginalText(data.text)
+      // Store analysis result for the Rewrite page
       setAnalysisResult(analysisResult)
       toast.success('Analysis Complete', 'Your text has been analyzed successfully.')
     } catch (error) {
@@ -84,13 +97,10 @@ function AnalyzeContent({ toast }) {
     }
   }
 
-  // Navigate to rewrite page with text
+  // Navigate to rewrite page – text is already synced to store via useEffect
   const goToRewrite = () => {
-    if (textValue) {
-      setOriginalText(textValue)
-      if (result) {
-        setAnalysisResult(result)
-      }
+    if (result) {
+      setAnalysisResult(result)
     }
     navigate('/rewrite')
   }

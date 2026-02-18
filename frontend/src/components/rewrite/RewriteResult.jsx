@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/common'
-import { Copy, Check, RefreshCw, Sparkles, ArrowRight } from 'lucide-react'
+import { Copy, Check, RefreshCw, Sparkles, ArrowRight, Brain } from 'lucide-react'
 
 /**
  * RewriteResult Component
@@ -11,8 +10,9 @@ import { Copy, Check, RefreshCw, Sparkles, ArrowRight } from 'lucide-react'
  * @param {string} selectedGoal - The goal that was used for rewriting
  * @param {function} onCopy - Callback when copy clicked
  * @param {function} onTryAnother - Callback to try another goal
+ * @param {function} onAnalyzeThis - Callback to send rewritten text back to Analyze page
  */
-export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother }) {
+export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAnalyzeThis }) {
   const [copied, setCopied] = React.useState(false)
 
   if (!result) return null
@@ -93,6 +93,23 @@ export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother }) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Analyze This Text CTA */}
+      {onAnalyzeThis && (
+        <button
+          type="button"
+          onClick={() => onAnalyzeThis(rewrittenText)}
+          className="rewrite-cta-btn w-full group relative flex items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold overflow-hidden"
+        >
+          <span className="rewrite-cta-bg absolute inset-0 rounded-xl" />
+          <span className="rewrite-cta-shimmer absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100" />
+          <span className="relative flex items-center gap-2 text-white">
+            <Brain className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+            Analyze This Text
+            <span className="text-blue-200 text-xs font-normal">→</span>
+          </span>
+        </button>
       )}
 
       {/* Actions */}

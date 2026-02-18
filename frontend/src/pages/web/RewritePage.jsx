@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAnalysisStore } from '@/stores'
 import { analysisService } from '@/services'
 import { useToast } from '@/components/common/Toast'
@@ -27,6 +27,7 @@ import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles } from 'lucide-react'
  */
 export default function RewritePage() {
   const toast = useToast()
+  const navigate = useNavigate()
 
   // Global state
   const {
@@ -104,6 +105,15 @@ export default function RewritePage() {
    */
   const handleCopySuccess = () => {
     toast.success('Copied!', 'Rewritten text copied to clipboard.')
+  }
+
+  /**
+   * Send rewritten text to Analyze page and navigate there
+   */
+  const handleAnalyzeRewrittenText = (rewrittenText) => {
+    setOriginalText(rewrittenText)
+    clearRewrite()
+    navigate('/analyze')
   }
 
   /**
@@ -271,6 +281,7 @@ export default function RewritePage() {
                     selectedGoal={selectedGoal}
                     onCopy={handleCopySuccess}
                     onTryAnother={handleTryAnother}
+                    onAnalyzeThis={handleAnalyzeRewrittenText}
                   />
                 )}
               </CardContent>
