@@ -339,7 +339,7 @@ function AnalysisResult({ result, onCopy, copied, onRewrite }) {
               { key: 'conscientiousness', label: 'Conscientiousness', desc: 'Organization & reliability', icon: '📋' },
               { key: 'extraversion', label: 'Extraversion', desc: 'Social energy & assertiveness', icon: '🗣️' },
               { key: 'agreeableness', label: 'Agreeableness', desc: 'Cooperation & trust', icon: '🤝' },
-              { key: 'neuroticism', label: 'Emotional Stability', desc: 'Calmness & resilience', icon: '🧘' },
+              { key: 'neuroticism', label: 'Neuroticism', desc: 'Calmness & resilience', icon: '🧘' },
             ].map(({ key, label, desc, icon }) => {
               // Personality values come as 0-100 from backend
               const value = personality[key] || 0
