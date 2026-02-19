@@ -14,12 +14,27 @@ import { Copy, Check, RefreshCw, Sparkles, ArrowRight, Brain } from 'lucide-reac
  */
 export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAnalyzeThis }) {
   const [copied, setCopied] = React.useState(false)
+  
+  // Handle improvements as array (new format) or object (old format)
+  const improvements = React.useMemo(() => {
+    if (!result) return []
+    const rawImprovements = result.improvements || []
+    if (Array.isArray(rawImprovements)) {
+      return rawImprovements
+    }
+    // Convert old object format to array
+    if (typeof rawImprovements === 'object') {
+      return Object.entries(rawImprovements).map(([key, value]) => `${key}: ${value}`)
+    }
+    return []
+  }, [result])
 
   if (!result) return null
 
   const rewrittenText = result.rewritten || result.rewritten_text || result.text || ''
-  const improvements = result.improvements || []
   const highlightedWords = result.highlighted_words || []
+  const changesSummary = result.changes_summary || ''
+  const goalApplied = result.goal_applied || selectedGoal
 
   const handleCopy = () => {
     navigator.clipboard.writeText(rewrittenText)
@@ -27,9 +42,6 @@ export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAn
     setTimeout(() => setCopied(false), 2000)
     onCopy?.()
   }
-
-  // Get goal info for display
-  const goalInfo = getGoalInfo(selectedGoal)
 
   return (
     <div className="space-y-4 fade-in">
@@ -43,8 +55,13 @@ export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAn
             Text Rewritten Successfully
           </p>
           <p className="text-xs text-green-600 dark:text-green-400">
-            Applied: {goalInfo.label}
+            Applied: {getGoalInfo(goalApplied).label}
           </p>
+          {changesSummary && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+              {changesSummary}
+            </p>
+          )}
         </div>
       </div>
 
@@ -83,12 +100,13 @@ export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAn
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Key Changes</h4>
           <div className="flex flex-wrap gap-2">
-            {highlightedWords.map((word, i) => (
+            {highlightedWords.map((wordObj, i) => (
               <span
                 key={i}
-                className="px-2 py-1 text-xs rounded-md bg-primary/10 text-primary border border-primary/20"
+                className="px-2 py-1 text-xs rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+                title={typeof wordObj === 'object' ? wordObj.reason : ''}
               >
-                {word}
+                {typeof wordObj === 'object' ? wordObj.word : wordObj}
               </span>
             ))}
           </div>

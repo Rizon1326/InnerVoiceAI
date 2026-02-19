@@ -126,6 +126,7 @@ def rewrite_text(request):
         user = request.user
         text = request.data.get('text', '').strip()
         post_id = request.data.get('post_id')
+        goal = request.data.get('goal', request.data.get('style', 'more_positive'))  # Accept both goal and style
         
         if not text:
             return Response({
@@ -174,7 +175,7 @@ def rewrite_text(request):
                 personality_neuroticism=int(personality_result['traits']['neuroticism'] * 100),
             )
         
-        # Rewrite text using TextRewriter
+        # Rewrite text using TextRewriter with goal
         result = text_rewriter.rewrite(text, {
             'sentiment': {
                 'label': analysis.sentiment_label,
@@ -184,7 +185,7 @@ def rewrite_text(request):
                 'neuroticism': analysis.personality_neuroticism,
                 'agreeableness': analysis.personality_agreeableness
             }
-        }, language)
+        }, language, goal)
         
         return Response({
             'success': True,

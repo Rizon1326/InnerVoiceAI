@@ -33,7 +33,29 @@ export const useAnalysisStore = create((set, get) => ({
     set({ analysisResult: result, flaggedWords })
   },
   
-  setRewriteResult: (result) => set({ rewriteResult: result }),
+  setRewriteResult: (result) => {
+    // Also extract flagged words from rewrite result if available
+    const currentState = get()
+    let updatedFlaggedWords = [...(currentState.flaggedWords || [])]
+    
+    // Merge highlighted_words from rewrite result
+    if (result?.highlighted_words) {
+      const existingWords = new Set(updatedFlaggedWords.map(w => w.word?.toLowerCase()))
+      result.highlighted_words.forEach(hw => {
+        if (hw.word && !existingWords.has(hw.word.toLowerCase())) {
+          updatedFlaggedWords.push({
+            word: hw.word,
+            reason: hw.reason,
+            alternatives: hw.alternatives || [],
+            category: hw.category || 'flagged',
+            emotion: hw.category || 'flagged',
+          })
+        }
+      })
+    }
+    
+    set({ rewriteResult: result, flaggedWords: updatedFlaggedWords })
+  },
   
   setSelectedGoal: (goal) => set({ selectedGoal: goal }),
   

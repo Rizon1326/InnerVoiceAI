@@ -47,10 +47,13 @@ export default function RewritePage() {
   // Local state for text editing
   const [editedText, setEditedText] = React.useState(originalText)
   const [isEditing, setIsEditing] = React.useState(false)
+  // eslint-disable-next-line no-unused-vars
+  const [replacementHistory, setReplacementHistory] = React.useState([])
 
   // Sync edited text with original
   React.useEffect(() => {
     setEditedText(originalText)
+    setReplacementHistory([])
   }, [originalText])
 
   // Extract emotions for suggestions
@@ -114,6 +117,25 @@ export default function RewritePage() {
     setOriginalText(rewrittenText)
     clearRewrite()
     navigate('/analyze')
+  }
+
+  /**
+   * Handle word replacement from HighlightedText suggestions
+   */
+  const handleWordReplace = (originalWord, replacement, startIndex, endIndex) => {
+    // Replace the word in the text
+    const beforeWord = editedText.slice(0, startIndex)
+    const afterWord = editedText.slice(endIndex)
+    const newText = beforeWord + replacement + afterWord
+    
+    setEditedText(newText)
+    setOriginalText(newText)
+    setReplacementHistory(prev => [...prev, { original: originalWord, replacement, timestamp: Date.now() }])
+    
+    // Clear rewrite result since text changed
+    clearRewrite()
+    
+    toast.success('Word Replaced', `"${originalWord}" → "${replacement}"`)
   }
 
   /**
@@ -219,6 +241,7 @@ export default function RewritePage() {
                   text={editedText}
                   flaggedWords={flaggedWords}
                   emotions={emotions}
+                  onWordReplace={handleWordReplace}
                 />
               )}
             </CardContent>
