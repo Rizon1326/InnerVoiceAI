@@ -20,7 +20,63 @@ import {
   Check,
   ChevronRight,
   Lightbulb,
+  Search,
+  PenLine,
 } from 'lucide-react'
+
+// ============================================
+// Bubble Animation Styles (injected via style tag)
+// ============================================
+
+const bubbleStyles = `
+@keyframes bubbleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bubbleInPanel {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(20px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03) translateY(-4px);
+  }
+  80% {
+    transform: scale(0.98) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.bubble-animate {
+  animation: bubbleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.bubble-animate-panel {
+  animation: bubbleInPanel 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.bubble-animate-delay-1 { animation-delay: 0.08s; opacity: 0; }
+.bubble-animate-delay-2 { animation-delay: 0.16s; opacity: 0; }
+.bubble-animate-delay-3 { animation-delay: 0.24s; opacity: 0; }
+`
 
 // ============================================
 // Constants
@@ -124,32 +180,35 @@ function CircularProgressRing({ value, size = 90, strokeWidth = 6, color = 'stro
 // ============================================
 
 /**
- * Analyze page - Text analysis with card-based category selection
+ * Analyze page - Two-panel layout with text input on left and results on right
  */
 export default function AnalyzePage() {
   const toast = useToast()
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-          <Sparkles className="h-4 w-4 text-white" />
+    <>
+      <style>{bubbleStyles}</style>
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              <span className="text-foreground">Text Anal</span>
+              <span className="text-emerald-400">ysis</span>
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              AI-powered emotional insights · sentiment · personality
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            <span className="text-foreground">Text Anal</span>
-            <span className="text-emerald-400">ysis</span>
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            AI-powered emotional insights · sentiment · personality
-          </p>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <AnalyzeContent toast={toast} />
-    </div>
+        {/* Main Content */}
+        <AnalyzeContent toast={toast} />
+      </div>
+    </>
   )
 }
 
@@ -163,6 +222,9 @@ function AnalyzeContent({ toast }) {
   const { originalText, setOriginalText, setAnalysisResult } = useAnalysisStore()
   const [activeCategory, setActiveCategory] = React.useState(null)
   const [analyzedCategories, setAnalyzedCategories] = React.useState(new Set())
+  const [showCards, setShowCards] = React.useState(false)
+  // Key to re-trigger bubble animation on the right panel when category changes
+  const [panelAnimKey, setPanelAnimKey] = React.useState(0)
 
   const {
     register,
@@ -189,47 +251,58 @@ function AnalyzeContent({ toast }) {
     setOriginalText(textValue || '')
   }, [textValue, setOriginalText])
 
-  // When result arrives, mark all categories as analyzed
+  // When result arrives, mark all categories as analyzed and show cards
   React.useEffect(() => {
     if (result) {
       setAnalyzedCategories(new Set(['sentiment', 'emotion', 'personality']))
+      setShowCards(true)
     }
   }, [result])
 
-  const onCategoryClick = async (categoryId) => {
-    if (analyzedCategories.has(categoryId)) {
-      setActiveCategory(categoryId)
-      return
-    }
-
+  // Handle "Analyze Text" button click
+  const handleAnalyzeClick = async () => {
     if (!textValue || textValue.length < 10) {
       toast.error('Text Required', 'Please enter at least 10 characters to analyze.')
       return
     }
 
-    if (!result) {
-      try {
-        const analysisResult = await analyze(textValue)
-        setAnalysisResult(analysisResult)
-        setActiveCategory(categoryId)
-        toast.success('Analysis Complete', 'Your text has been analyzed successfully.')
-      } catch (error) {
-        toast.error('Analysis Failed', error.message)
-      }
-    } else {
-      setActiveCategory(categoryId)
+    try {
+      const analysisResult = await analyze(textValue)
+      setAnalysisResult(analysisResult)
+      setShowCards(true)
+      toast.success('Analysis Complete', 'Your text has been analyzed successfully.')
+    } catch (error) {
+      toast.error('Analysis Failed', error.message)
     }
+  }
+
+  // Handle "Rewrite Suggestion" button click
+  const handleRewriteClick = () => {
+    if (textValue) {
+      setOriginalText(textValue)
+    }
+    if (result) {
+      setAnalysisResult(result)
+    }
+    navigate('/rewrite')
+  }
+
+  // Handle category card click — show result in right panel with bubble animation
+  const onCategoryClick = (categoryId) => {
+    setActiveCategory(categoryId)
+    setPanelAnimKey((k) => k + 1)
   }
 
   const handleReset = () => {
     reset()
     setActiveCategory(null)
     setAnalyzedCategories(new Set())
+    setShowCards(false)
   }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr,1.1fr]">
-      {/* ======== LEFT COLUMN ======== */}
+      {/* ======== LEFT PANEL ======== */}
       <div className="space-y-4">
         {/* Text Input Card */}
         <div className="rounded-xl border border-border/60 bg-card p-5">
@@ -237,20 +310,11 @@ function AnalyzeContent({ toast }) {
             <span className="text-lg">✍️</span>
             <h2 className="text-sm font-semibold text-foreground">Enter Your Text</h2>
           </div>
-          <form onSubmit={handleSubmit(async (data) => {
-            try {
-              const analysisResult = await analyze(data.text)
-              setAnalysisResult(analysisResult)
-              setActiveCategory('sentiment')
-              toast.success('Analysis Complete', 'Your text has been analyzed successfully.')
-            } catch (error) {
-              toast.error('Analysis Failed', error.message)
-            }
-          })}>
+          <form onSubmit={handleSubmit(handleAnalyzeClick)}>
             <FormField error={errors.text?.message}>
               <Textarea
                 placeholder="Type or paste your text here to begin analysis..."
-                className="min-h-[140px] resize-y bg-background/50 border-border/40 text-sm"
+                className="min-h-[160px] resize-y bg-background/50 border-border/40 text-sm"
                 {...register('text')}
               />
               <div className="flex justify-between text-[11px] text-muted-foreground mt-1.5">
@@ -259,88 +323,124 @@ function AnalyzeContent({ toast }) {
               </div>
             </FormField>
           </form>
-        </div>
 
-        {/* Analysis Category Cards */}
-        {ANALYSIS_CATEGORIES.map((cat) => {
-          const isAnalyzed = analyzedCategories.has(cat.id)
-          const isActive = activeCategory === cat.id
-          const Icon = cat.icon
-
-          return (
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-4">
             <button
-              key={cat.id}
               type="button"
-              onClick={() => onCategoryClick(cat.id)}
+              onClick={handleAnalyzeClick}
               disabled={isLoading}
               className={cn(
-                'w-full rounded-xl border p-4 text-left transition-all duration-300 group relative overflow-hidden',
-                isActive
-                  ? cn('border-2', cat.borderColor, 'bg-card shadow-lg', cat.glowColor)
-                  : 'border-border/50 bg-card hover:border-border hover:bg-accent/30',
+                'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-semibold transition-all duration-300',
+                'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25',
+                'hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98]',
                 isLoading && 'opacity-60 pointer-events-none'
               )}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    'h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br',
-                    cat.color,
-                    'shadow-lg',
-                    cat.glowColor
-                  )}>
-                    <Icon className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className={cn(
-                      'text-sm font-semibold transition-colors',
-                      isActive ? cat.textColor : 'text-foreground'
-                    )}>
-                      {cat.label}
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground">{cat.description}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isAnalyzed ? (
-                    <div className={cn(
-                      'h-7 w-7 rounded-full flex items-center justify-center',
-                      isActive ? cn('bg-gradient-to-br', cat.color) : 'bg-emerald-500/20'
-                    )}>
-                      <Check className={cn('h-3.5 w-3.5', isActive ? 'text-white' : 'text-emerald-400')} />
-                    </div>
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  )}
-                </div>
-              </div>
-
-              {/* Ready indicator */}
-              {isAnalyzed && !isActive && (
-                <div className="mt-2 flex items-center gap-1.5">
-                  <span className="text-[10px] font-medium text-emerald-400">⚡ Analysis ready — click to display results</span>
-                </div>
-              )}
+              <Search className="h-4 w-4" />
+              {isLoading ? 'Analyzing...' : 'Analyze Text'}
             </button>
-          )
-        })}
+            <button
+              type="button"
+              onClick={handleRewriteClick}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-semibold transition-all duration-300',
+                'border border-border/60 bg-card text-foreground',
+                'hover:bg-accent/40 hover:border-border hover:scale-[1.02] active:scale-[0.98]'
+              )}
+            >
+              <PenLine className="h-4 w-4" />
+              Rewrite Suggestion
+            </button>
+          </div>
+        </div>
+
+        {/* Analysis Category Cards — shown after Analyze Text is clicked */}
+        {showCards && (
+          <div className="space-y-3">
+            {ANALYSIS_CATEGORIES.map((cat, idx) => {
+              const isAnalyzed = analyzedCategories.has(cat.id)
+              const isActive = activeCategory === cat.id
+              const Icon = cat.icon
+
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => onCategoryClick(cat.id)}
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full rounded-xl border p-4 text-left transition-all duration-300 group relative overflow-hidden',
+                    'bubble-animate',
+                    idx === 0 && 'bubble-animate-delay-1',
+                    idx === 1 && 'bubble-animate-delay-2',
+                    idx === 2 && 'bubble-animate-delay-3',
+                    isActive
+                      ? cn('border-2', cat.borderColor, 'bg-card shadow-lg', cat.glowColor)
+                      : 'border-border/50 bg-card hover:border-border hover:bg-accent/30',
+                    isLoading && 'opacity-60 pointer-events-none'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        'h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br',
+                        cat.color,
+                        'shadow-lg',
+                        cat.glowColor
+                      )}>
+                        <Icon className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className={cn(
+                          'text-sm font-semibold transition-colors',
+                          isActive ? cat.textColor : 'text-foreground'
+                        )}>
+                          {cat.label}
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground">{cat.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isAnalyzed ? (
+                        <div className={cn(
+                          'h-7 w-7 rounded-full flex items-center justify-center',
+                          isActive ? cn('bg-gradient-to-br', cat.color) : 'bg-emerald-500/20'
+                        )}>
+                          <Check className={cn('h-3.5 w-3.5', isActive ? 'text-white' : 'text-emerald-400')} />
+                        </div>
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ready indicator */}
+                  {isAnalyzed && !isActive && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="text-[10px] font-medium text-emerald-400">⚡ Click to display results</span>
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ======== RIGHT COLUMN — Results ======== */}
-      <div className="rounded-xl border border-border/60 bg-card p-5 min-h-[500px]">
+      {/* ======== RIGHT PANEL — Analysis Report ======== */}
+      <div className="rounded-xl border border-border/60 bg-card p-5 min-h-[500px] lg:sticky lg:top-5 lg:self-start">
         {isLoading ? (
           <AnalysisLoadingState />
         ) : activeCategory && result ? (
-          <CategoryResultView
-            category={activeCategory}
-            result={result}
-            onNavigateRewrite={() => {
-              setAnalysisResult(result)
-              navigate('/rewrite')
-            }}
-          />
+          <div key={panelAnimKey} className="bubble-animate-panel">
+            <CategoryResultView
+              category={activeCategory}
+              result={result}
+            />
+          </div>
         ) : (
-          <EmptyResultState />
+          <InitialRightPanelState hasResult={!!result} />
         )}
       </div>
     </div>
@@ -361,7 +461,7 @@ function CategoryResultView({ category, result }) {
   const Icon = catConfig?.icon || Sparkles
 
   return (
-    <div className="fade-in">
+    <div>
       {/* Panel Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className={cn(
@@ -556,24 +656,37 @@ function InsightBox({ text }) {
   )
 }
 
-function EmptyResultState() {
+/**
+ * Initial right panel state — shown before any analysis is run
+ * Shows "First analyse your post" with emoji
+ */
+function InitialRightPanelState({ hasResult }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center space-y-3">
+    <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center space-y-4">
       <div className="relative">
-        <div className="h-20 w-20 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-          <span className="text-4xl">🔮</span>
+        <div className="h-24 w-24 rounded-full bg-gradient-to-br from-indigo-500/15 to-purple-500/15 flex items-center justify-center">
+          <span className="text-5xl">�</span>
         </div>
-        <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-          <Sparkles className="h-3 w-3 text-white" />
+        <div className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center shadow-lg">
+          <Search className="h-4 w-4 text-white" />
         </div>
       </div>
-      <div>
-        <p className="text-sm font-medium text-foreground/60">Analysis Results</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">Select an analysis card to begin</p>
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-foreground/70">
+          {hasResult ? 'Select a category' : 'First analyse your post'}
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-[260px]">
+          {hasResult
+            ? 'Click on one of the analysis cards on the left to view detailed results here.'
+            : 'Enter your text on the left and click "Analyze Text" to get AI-powered insights on sentiment, emotions, and personality.'}
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground max-w-[220px]">
-        Enter your text on the left then select an analysis card to begin
-      </p>
+      {!hasResult && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/60 mt-2">
+          <span>👈</span>
+          <span>Type your text & hit Analyze</span>
+        </div>
+      )}
     </div>
   )
 }
