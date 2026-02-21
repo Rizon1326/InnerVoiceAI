@@ -401,31 +401,6 @@ function AnalysisResult({ result, onCopy, copied, onRewrite }) {
           )}
         </ul>
       </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        {/* Rewrite Button - Primary CTA */}
-        <button
-          type="button"
-          className="rewrite-cta-btn flex-1 group relative flex items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold overflow-hidden"
-          onClick={onRewrite}
-        >
-          <span className="rewrite-cta-bg absolute inset-0 rounded-xl" />
-          <span className="rewrite-cta-shimmer absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100" />
-          <span className="relative flex items-center gap-2 text-white">
-            <Wand2 className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-12" />
-            Rewrite This Text
-          </span>
-        </button>
-
-        {/* Copy Button */}
-        <Button
-          variant="outline"
-          onClick={() => onCopy(JSON.stringify(result, null, 2))}
-        >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        </Button>
-      </div>
     </div>
   )
 }
