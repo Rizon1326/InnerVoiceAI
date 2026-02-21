@@ -18,6 +18,7 @@ urlpatterns = [
     # Progress tracking (require authentication)
     path('progress/', auth_views.get_user_progress),
     path('progress/trends/', auth_views.get_emotional_trends),
+    path('progress/behavioral-analytics/', auth_views.get_behavioral_analytics),
     
     # Metrics and evaluation (require authentication)
     path('metrics/', auth_views.get_user_metrics),

@@ -3,7 +3,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Post, Analysis
+from .models import Post, Analysis, RewriteRecord
 from .serializers import PostSerializer
 from services.language_detector import LanguageDetector
 from services.sentiment_analyzer import SentimentAnalyzer
@@ -14,6 +14,7 @@ from services.text_rewriter import TextRewriter
 from services.progress_tracker import ProgressTracker
 from services.bangla_processor import BanglaProcessor
 from services.context_analyzer import ContextAnalyzer
+from services.behavioral_analytics import classify_post_type
 
 
 # Initialize services
@@ -66,12 +67,20 @@ def analyze_text(request):
             emotions
         )
         personality = personality_result['traits']
+
+        # Classify post type for behavioral analytics
+        post_type = classify_post_type(text, ctx['intent'], ctx['detected_tone'])
         
         # Create records with user association
         post = Post.objects.create(
             user=user,
             text=text,
-            language=language
+            language=language,
+            detected_language_type=ctx['detected_language_type'],
+            detected_tone=ctx['detected_tone'],
+            intent=ctx['intent'],
+            post_type=post_type,
+            word_count=len(text.split()),
         )
         analysis = Analysis.objects.create(
             post=post,
@@ -215,6 +224,16 @@ def rewrite_text(request):
                 'agreeableness': analysis.personality_agreeableness
             }
         }, language, goal)
+
+        # Track rewrite for behavioral analytics
+        RewriteRecord.objects.create(
+            user=user,
+            post=post,
+            original_text=text,
+            rewritten_text=result.get('rewritten_text', result.get('text', '')),
+            goal=goal,
+            source_language=language,
+        )
         
         return Response({
             'success': True,

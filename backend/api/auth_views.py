@@ -15,6 +15,7 @@ from api.serializers import (
     ProjectMetricsSerializer, UserSerializer
 )
 from services.progress_tracker import ProgressTracker, MetricsCalculator
+from services.behavioral_analytics import BehavioralAnalyticsEngine
 import json
 
 
@@ -283,4 +284,34 @@ def get_user_history(request):
         return Response({
             'success': False,
             'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============= BEHAVIORAL ANALYTICS VIEWS =============
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_behavioral_analytics(request):
+    """
+    Compute and return full behavioral analytics for the authenticated user.
+    Query params:
+      - days: number of days to look back (default 30, max 365)
+    """
+    try:
+        user = request.user
+        days = min(int(request.query_params.get('days', 30)), 365)
+
+        engine = BehavioralAnalyticsEngine(user, days=days)
+        analytics = engine.compute()
+
+        return Response({
+            'success': True,
+            'data': analytics,
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e),
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

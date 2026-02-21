@@ -54,6 +54,16 @@ export const analysisService = {
   },
 
   /**
+   * Get behavioral analytics for the authenticated user
+   * @param {object} params - { days?: number }
+   * @returns {Promise} Full behavioral analytics payload
+   */
+  getBehavioralAnalytics: async (params = {}) => {
+    const response = await api.get('/progress/behavioral-analytics/', { params })
+    return response.data
+  },
+
+  /**
    * Get public statistics
    * @returns {Promise} Project statistics
    */

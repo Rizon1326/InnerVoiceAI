@@ -7,12 +7,20 @@ class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     text = models.TextField()
     language = models.CharField(max_length=10, default='en')
+    # New behavioral analytics fields
+    detected_language_type = models.CharField(max_length=20, default='english')  # bangla/banglish/mixed/english
+    detected_tone = models.CharField(max_length=20, default='friendly')  # friendly/family/serious/humorous/sarcastic
+    intent = models.CharField(max_length=40, default='informational')  # appreciation/emotional_expression/sharing_experience/etc.
+    post_type = models.CharField(max_length=30, default='informational')  # expressive/informative/persuasive/reflective/conversational
+    word_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'post_type']),
+            models.Index(fields=['user', 'detected_language_type']),
         ]
 
 class Analysis(models.Model):
@@ -106,3 +114,22 @@ class ProjectMetrics(models.Model):
     
     class Meta:
         verbose_name_plural = "Project Metrics"
+
+
+class RewriteRecord(models.Model):
+    """Track every rewrite request for preference learning"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rewrite_records')
+    post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True, related_name='rewrites')
+    original_text = models.TextField()
+    rewritten_text = models.TextField(default='')
+    goal = models.CharField(max_length=40, default='more_positive')  # rewrite goal used
+    source_language = models.CharField(max_length=20, default='en')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'goal']),
+        ]

@@ -211,3 +211,40 @@ export function useEmotionalTrends(period = 'week') {
     refetch: fetchTrends,
   }
 }
+
+/**
+ * Hook for behavioral analytics data
+ */
+export function useBehavioralAnalytics(days = 30) {
+  const [status, setStatus] = React.useState(LOADING_STATES.IDLE)
+  const [analytics, setAnalytics] = React.useState(null)
+  const [error, setError] = React.useState(null)
+
+  const fetchAnalytics = React.useCallback(async (d = days) => {
+    setStatus(LOADING_STATES.LOADING)
+    setError(null)
+    try {
+      const response = await analysisService.getBehavioralAnalytics({ days: d })
+      const data = response.data || response
+      setAnalytics(data)
+      setStatus(LOADING_STATES.SUCCESS)
+      return data
+    } catch (err) {
+      setError(err.message)
+      setStatus(LOADING_STATES.ERROR)
+      throw err
+    }
+  }, [days])
+
+  React.useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
+
+  return {
+    analytics,
+    isLoading: status === LOADING_STATES.LOADING,
+    isError: status === LOADING_STATES.ERROR,
+    error,
+    refetch: fetchAnalytics,
+  }
+}
