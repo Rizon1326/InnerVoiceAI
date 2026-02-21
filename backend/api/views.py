@@ -13,6 +13,7 @@ from services.gemini_service import GeminiService
 from services.text_rewriter import TextRewriter
 from services.progress_tracker import ProgressTracker
 from services.bangla_processor import BanglaProcessor
+from services.context_analyzer import ContextAnalyzer
 
 
 # Initialize services
@@ -23,6 +24,11 @@ personality_analyzer = PersonalityAnalyzer()
 gemini_service = GeminiService()
 text_rewriter = TextRewriter()
 bangla_processor = BanglaProcessor()
+context_analyzer = ContextAnalyzer(
+    bangla_processor=bangla_processor,
+    sentiment_analyzer=sentiment_analyzer,
+    emotion_detector=emotion_detector,
+)
 
 
 @api_view(['GET'])
@@ -43,17 +49,15 @@ def analyze_text(request):
                 'error': 'Text too short'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Detect language — Bangla (Unicode) and Banglish both resolve to 'bn'
-        language = language_detector.detect_language(text)
+        # --- Full context-aware analysis (§1-§7) ---
+        ctx = context_analyzer.analyze(text)
 
-        # All non-empty text is supported; 'bn' covers Bangla + Banglish
-        # (no "Unsupported language" rejection)
-        
-        # Analyze sentiment
-        sentiment = sentiment_analyzer.analyze(text, language)
-        
-        # Detect emotions
-        emotions = emotion_detector.detect(text, language)
+        # Detect language — Bangla (Unicode) and Banglish both resolve to 'bn'
+        language = 'bn' if ctx['detected_language_type'] in ('bangla', 'banglish', 'mixed') else 'en'
+
+        # Use context-aware sentiment & emotion from the analyzer
+        sentiment = ctx['sentiment']
+        emotions = ctx['emotion']['scores']
         
         # Analyze personality
         personality_result = personality_analyzer.analyze(
@@ -92,22 +96,26 @@ def analyze_text(request):
         # Update daily progress
         ProgressTracker.update_daily_progress(user)
 
-        # Build Bangla-specific metadata for the response
-        bangla_meta = {}
-        if language == 'bn' or bangla_processor.is_bangla_or_banglish(text):
-            proc_result = bangla_processor.process(text)
-            bangla_meta = {
-                'script': proc_result.script,           # 'bangla' | 'banglish'
-                'detected_slang': proc_result.detected_slang,
-                'context_hint': bangla_processor.get_context_hint(text),
-                'normalised_text': proc_result.bangla_text,
-            }
-
         serializer = PostSerializer(post)
+
+        # Build the structured output (Requirement §7)
+        structured_analysis = {
+            'detected_language_type': ctx['detected_language_type'],
+            'normalised_text': ctx['normalised_text'],
+            'translated_text': ctx['translated_text'],
+            'sentiment': ctx['sentiment'],
+            'emotion': ctx['emotion'],
+            'intent': ctx['intent'],
+            'reasoning': ctx['reasoning'],
+            'context_hint': ctx['context_hint'],
+            'punctuation_intensity': ctx['punctuation_intensity'],
+            'detected_slang': ctx['detected_slang'],
+        }
+
         return Response({
             'success': True,
             'data': serializer.data,
-            **({"bangla_meta": bangla_meta} if bangla_meta else {}),
+            'context_analysis': structured_analysis,
         })
         
     except Exception as e:

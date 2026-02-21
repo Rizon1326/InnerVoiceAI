@@ -7,10 +7,111 @@ Handles:
   3. Context-aware social-media slang mapping (e.g. "kothin" → "very good")
   4. Language detection that accepts both Bangla and Banglish as supported
   5. English translation for downstream ML models (sentiment / emotion)
+  6. **Banglish normalisation pipeline**: phonetic conversion, slang dictionary,
+     spelling-variation handling, repeated-character reduction
+  7. **Punctuation / emoji intensity scoring** for context signals
+  8. **Multi-format language understanding**: Unicode Bangla, Banglish,
+     mixed Bangla-English, informal social-media language
 """
 
 import re
 import unicodedata
+
+# =====================================================================
+#  BANGLISH NORMALISATION PIPELINE  (Requirement §2)
+# =====================================================================
+
+# 2a. Spelling-variation map  (common misspellings → canonical Banglish)
+SPELLING_VARIATIONS: dict[str, str] = {
+    # vowel swaps
+    "valobashi": "valobashi", "bhalobashi": "valobashi",
+    "bhalobasa": "valobasha", "valobasa": "valobasha",
+    "vlo": "valo", "bhlo": "bhalo",
+    "vlg": "valo lage", "bhlg": "bhalo lage",
+    "onek sundor": "onek sundor", "onek shundor": "onek sundor",
+    "onek sundr": "onek sundor", "onek shundr": "onek sundor",
+    "osthadharon": "oshadharon", "ostadharon": "oshadharon",
+    "ossadharon": "oshadharon", "osadaron": "oshadharon",
+    "kotin": "kothin", "kothn": "kothin", "kothiin": "kothin",
+    "fataafati": "fatafati", "phataaphati": "fatafati", "fataphati": "fatafati",
+    "jakkash": "jhakkash", "jhakas": "jhakkash", "jhakkas": "jhakkash",
+    "josss": "joss", "josh": "joss", "joshh": "joss",
+    "darunn": "darun", "daroon": "darun", "daruun": "darun",
+    "betha": "betha", "bytha": "betha", "byetha": "betha",
+    "dukkho": "dukkho", "dukho": "dukkho", "dukhho": "dukkho",
+    "raga": "raga", "raag": "raga", "raaga": "raga",
+    "pagol": "pagol", "paagol": "pagol", "pagal": "pagol",
+    "kosto": "kosto", "koshto": "kosto", "koshtu": "kosto",
+    "shundor": "sundor", "shundr": "sundor", "shondor": "sundor",
+    "khushi": "khushi", "kushi": "khushi", "khusi": "khushi",
+    "ashche": "ashchi", "asche": "ashchi",
+    "kharap": "kharap", "kharab": "kharap", "kharrap": "kharap",
+    "osadharan": "oshadharon", "oshadaron": "oshadharon",
+    # common typo merges
+    "achha": "accha", "acha": "accha",
+    "vai": "bhai", "bai": "bhai",
+    "apa": "apu", "appu": "apu",
+    "maaraf": "maaf", "maph": "maaf",
+}
+
+# 2b. Repeated-character reduction regex
+#     e.g. "daruuuuun" → "darun",  "jossssss" → "joss"
+_REPEATED_CHAR_RE = re.compile(r'(.)\1{2,}')
+
+def _reduce_repeated_chars(text: str) -> str:
+    """Collapse 3+ consecutive identical chars to 2 (preserves 'ss', 'tt', etc.)."""
+    return _REPEATED_CHAR_RE.sub(r'\1\1', text)
+
+
+def _normalise_banglish(text: str) -> str:
+    """
+    Full Banglish normalisation pipeline (Requirement §2):
+      1. lower-case
+      2. reduce repeated characters  (e.g. "kothinnn" → "kothinn" → matches)
+      3. apply spelling-variation map
+      4. (phonetic conversion handled by BANGLISH_TO_BANGLA below)
+    """
+    text = text.lower()
+    text = _reduce_repeated_chars(text)
+    words = text.split()
+    normalised = []
+    for w in words:
+        clean = re.sub(r'[^\w]', '', w)
+        normalised.append(SPELLING_VARIATIONS.get(clean, w))
+    return ' '.join(normalised)
+
+
+# =====================================================================
+#  PUNCTUATION & EMOJI INTENSITY  (Requirement §3 – context signals)
+# =====================================================================
+
+# Common social-media emojis grouped by sentiment direction
+_POSITIVE_EMOJI_RE = re.compile(
+    r'[😀😁😂🤣😃😄😅😆😊😍🥰😘🤩🥳💪🔥❤️💕💖💯🎉🎊👏👍✨💥😻🙌💗💞🌟⭐🏆🫶🤗😎😇🥹]'
+)
+_NEGATIVE_EMOJI_RE = re.compile(
+    r'[😢😭😞😔😟😩😫😖😣😤😠😡🤬💔😿😾🥺😰😥😓☹️🙁😶‍🌫️💀👎🤮🤢😵]'
+)
+
+def _count_exclamation(text: str) -> int:
+    return text.count('!')
+
+def _count_question(text: str) -> int:
+    return text.count('?')
+
+def _count_emoji_sentiment(text: str) -> dict:
+    pos = len(_POSITIVE_EMOJI_RE.findall(text))
+    neg = len(_NEGATIVE_EMOJI_RE.findall(text))
+    return {'positive_emoji': pos, 'negative_emoji': neg, 'total_emoji': pos + neg}
+
+def compute_punctuation_intensity(text: str) -> dict:
+    """Return dict with exclamation, question, emoji counts – used as context signals."""
+    return {
+        'exclamations': _count_exclamation(text),
+        'questions': _count_question(text),
+        **_count_emoji_sentiment(text),
+    }
+
 
 # ---------------------------------------------------------------------------
 # 1. Banglish → Bangla word mapping
@@ -69,6 +170,21 @@ BANGLISH_TO_BANGLA: dict[str, str] = {
     "amazing hoise": "আমেজিং হইসে",
     "amazing lagse": "আমেজিং লাগসে",
 
+    # Positive expressions – expanded
+    "agun": "আগুন",          # social media: "fire / amazing"
+    "marattok": "মারাত্মক",   # social media: "deadly = awesome"
+    "jhakanaka": "ঝাকানাকা",
+    "shandaar": "শানদার",
+    "mojadar": "মজাদার",
+    "opurbo": "অপূর্ব",
+    "bhishon sundor": "ভীষণ সুন্দর",
+    "khub sundor": "খুব সুন্দর",
+    "aha ki sundor": "আহা কি সুন্দর",
+    "oporup": "অপরূপ",
+    "ati sundor": "অতি সুন্দর",
+    "mind blowing": "মাইন্ড ব্লোয়িং",
+    "hridoysparshi": "হৃদয়স্পর্শী",
+
     # Negative / sad slang
     "kharap lagse": "খারাপ লাগসে",
     "kharap lagche": "খারাপ লাগছে",
@@ -92,6 +208,10 @@ BANGLISH_TO_BANGLA: dict[str, str] = {
     "ekta bekar": "একটা বেকার",
     "bekar": "বেকার",
     "akela": "একা",
+    "bhalobasha nei": "ভালোবাসা নেই",
+    "keu nei": "কেউ নেই",
+    "shob shesh": "সব শেষ",
+    "ar parina": "আর পারিনা",
 
     # Anger / frustration
     "raga lagse": "রাগ লাগসে",
@@ -104,6 +224,10 @@ BANGLISH_TO_BANGLA: dict[str, str] = {
     "frustrated": "হতাশ",
     "fire gesi": "ফিরে গেসি",
     "gesi": "গেসি",
+    "chup kor": "চুপ কর",
+    "beshi bolona": "বেশি বলোনা",
+    "joto shob": "যতো সব",
+    "matha kharap": "মাথা খারাপ",
 
     # Fear / surprise
     "bhoy lagse": "ভয় লাগসে",
@@ -114,6 +238,8 @@ BANGLISH_TO_BANGLA: dict[str, str] = {
     "obbhoshot": "অভূতপূর্ব",
     "obak": "অবাক",
     "akta shocking": "একটা শকিং",
+    "ki holo": "কি হলো",
+    "sorbonash": "সর্বনাশ",
 
     # Pronouns / common words
     "ami": "আমি",
@@ -148,6 +274,12 @@ BANGLISH_TO_BANGLA: dict[str, str] = {
     "hoyeche": "হয়েছে",
     "holo": "হলো",
     "korchi": "করছি",
+    "bhai": "ভাই",
+    "apu": "আপু",
+    "accha": "আচ্ছা",
+    "re": "রে",
+    "nah": "না",
+    "hmm": "হুমম",
     "korbo": "করবো",
     "korechi": "করেছি",
     "korechhi": "করেছি",
@@ -203,6 +335,21 @@ BANGLA_SLANG_TO_ENGLISH: dict[str, str] = {
     "খুশি": "happy joyful",
     "সুন্দর": "beautiful nice",
     "মাস্টারপিস": "masterpiece perfect",
+    # Expanded positive
+    "আগুন": "fire amazing incredible awesome",   # social media: "fire = lit"
+    "মারাত্মক": "deadly awesome amazing incredible",  # social media: "lethal = great"
+    "ঝাকানাকা": "dazzling amazing wonderful",
+    "শানদার": "splendid magnificent",
+    "মজাদার": "entertaining fun enjoyable",
+    "অপূর্ব": "exquisite beautiful wonderful",
+    "ভীষণ সুন্দর": "extremely beautiful gorgeous",
+    "খুব সুন্দর": "very beautiful lovely",
+    "আহা কি সুন্দর": "oh how beautiful gorgeous amazing",
+    "অপরূপ": "stunning breathtaking beautiful",
+    "অতি সুন্দর": "very beautiful lovely",
+    "মাইন্ড ব্লোয়িং": "mind blowing incredible",
+    "হৃদয়স্পর্শী": "heartwarming touching moving",
+    "বড় ভালো": "very good great",
 
     # Negative slang
     "খারাপ লাগসে": "feeling bad sad",
@@ -232,6 +379,10 @@ BANGLA_SLANG_TO_ENGLISH: dict[str, str] = {
     "পাগল বানাইছে": "driving me crazy infuriating",
     "বিরক্তিকর": "annoying irritating",
     "হতাশ": "frustrated disappointed",
+    "চুপ কর": "shut up be quiet angry",
+    "বেশি বলোনা": "stop talking annoyed",
+    "যতো সব": "all this nonsense frustrated",
+    "মাথা খারাপ": "crazy insane angry",
 
     # Fear / surprise
     "ভয় লাগসে": "feeling scared afraid",
@@ -240,12 +391,20 @@ BANGLA_SLANG_TO_ENGLISH: dict[str, str] = {
     "শক্ড হইসে": "shocked surprised",
     "অবাক": "surprised astonished",
     "অভূতপূর্ব": "unprecedented amazing shocking",
+    "কি হলো": "what happened shocked",
+    "সর্বনাশ": "disaster ruined oh no",
 
     # Neutral / misc
     "ধন্যবাদ": "thank you grateful",
     "ভালো আছি": "doing well good",
     "কেমন আছো": "how are you",
     "কেমন আছেন": "how are you",
+
+    # Expanded negative
+    "ভালোবাসা নেই": "no love unloved lonely",
+    "কেউ নেই": "nobody is here alone lonely",
+    "সব শেষ": "everything is over hopeless finished",
+    "আর পারিনা": "cannot take it anymore exhausted overwhelmed",
 }
 
 # Banglish slang → direct English meaning (bypass transliteration)
@@ -277,6 +436,20 @@ BANGLISH_SLANG_TO_ENGLISH: dict[str, str] = {
     "perfect hoyeche": "turned out perfect excellent",
     "amazing hoise": "turned out amazing",
     "amazing lagse": "feels amazing",
+    # Expanded positive
+    "agun": "fire amazing incredible lit awesome",
+    "marattok": "deadly awesome amazing incredible praise",
+    "jhakanaka": "dazzling amazing wonderful",
+    "shandaar": "splendid magnificent",
+    "mojadar": "entertaining fun enjoyable",
+    "opurbo": "exquisite beautiful wonderful",
+    "bhishon sundor": "extremely beautiful gorgeous",
+    "khub sundor": "very beautiful lovely",
+    "aha ki sundor": "oh how beautiful gorgeous amazing",
+    "oporup": "stunning breathtaking",
+    "ati sundor": "very beautiful lovely",
+    "mind blowing": "mind blowing incredible",
+    "hridoysparshi": "heartwarming touching moving",
     # Negative
     "kharap lagse": "feeling bad sad",
     "kharap lagche": "feeling bad sad",
@@ -309,6 +482,17 @@ BANGLISH_SLANG_TO_ENGLISH: dict[str, str] = {
     "shocked hoise": "shocked surprised astonished",
     "shocked lagse": "shocked surprised",
     "obak": "surprised astonished",
+    # Expanded
+    "bhalobasha nei": "no love unloved lonely",
+    "keu nei": "nobody is here alone lonely",
+    "shob shesh": "everything is over hopeless finished",
+    "ar parina": "cannot take it anymore exhausted overwhelmed",
+    "chup kor": "shut up be quiet angry",
+    "beshi bolona": "stop talking annoyed",
+    "joto shob": "all this nonsense frustrated",
+    "matha kharap": "crazy insane angry",
+    "ki holo": "what happened shocked",
+    "sorbonash": "disaster ruined oh no",
 }
 
 # ---------------------------------------------------------------------------
@@ -339,12 +523,17 @@ def _is_banglish(text: str) -> bool:
     words found in the Banglish lexicon, OR if common Banglish phoneme
     patterns are present (e.g. 'kh', 'bh', 'gh', 'ch' digraphs common in
     Bangla romanisation).
+    Also applies the normalisation pipeline before checking.
     """
     if _contains_bangla(text):
         return False
-    lower = text.lower()
+    lower = _normalise_banglish(text)
     # Check if any known Banglish phrase is in the text
     for key in BANGLISH_TO_BANGLA:
+        if key in lower:
+            return True
+    # Also check the spelling-variation-normalised form
+    for key in BANGLISH_SLANG_TO_ENGLISH:
         if key in lower:
             return True
     # Phoneme heuristic: common Bangla romanisation digraphs
@@ -352,6 +541,8 @@ def _is_banglish(text: str) -> bool:
         r'\bkh', r'\bbh', r'\bgh', r'\bch', r'\bsh', r'\bth',
         r'hoise\b', r'lagse\b', r'lagche\b', r'achhi\b', r'achi\b',
         r'korchi\b', r'jacchi\b', r'ashchi\b', r'hoyeche\b',
+        r'\bvalo\b', r'\bbhalo\b', r'\bamar\b', r'\btomar\b',
+        r'\bkothin\b', r'\bdarun\b', r'\bjoss\b',
     ]
     if any(re.search(p, lower) for p in bangla_digraphs):
         return True
@@ -362,8 +553,9 @@ def _banglish_to_english(text: str) -> str:
     """
     Translate Banglish text to English using the slang→English map first,
     then falling back to word-level transliteration description.
+    Applies the Banglish normalisation pipeline first.
     """
-    lower = text.lower().strip()
+    lower = _normalise_banglish(text)
 
     # 1. Try full-phrase slang match (longest first)
     for phrase in sorted(BANGLISH_SLANG_TO_ENGLISH, key=len, reverse=True):
@@ -415,51 +607,72 @@ class BanglaProcessor:
     -----
     processor = BanglaProcessor()
     result = processor.process("kothin hoise bhai!")
-    # result.script      → 'banglish'
-    # result.bangla_text → 'কঠিন হইসে bhai!'
-    # result.english_text→ 'turned out amazing awesome bhai!'
-    # result.is_supported→ True
+    # result.script        → 'banglish'
+    # result.bangla_text   → 'কঠিন হইসে ভাই!'
+    # result.english_text  → 'turned out amazing awesome bhai!'
+    # result.is_supported  → True
+    # result.normalised_text → 'kothin hoise bhai!'
+    # result.punctuation_intensity → {'exclamations': 1, ...}
     """
 
     class ProcessResult:
         __slots__ = (
             'original', 'script', 'bangla_text',
             'english_text', 'is_supported', 'detected_slang',
+            'normalised_text', 'punctuation_intensity',
         )
 
         def __init__(self):
             self.original: str = ''
-            self.script: str = 'unknown'          # 'bangla' | 'banglish' | 'english' | 'unknown'
+            self.script: str = 'unknown'          # 'bangla' | 'banglish' | 'mixed' | 'english' | 'unknown'
             self.bangla_text: str = ''
             self.english_text: str = ''
             self.is_supported: bool = False
             self.detected_slang: list[str] = []
+            self.normalised_text: str = ''
+            self.punctuation_intensity: dict = {}
 
     # ------------------------------------------------------------------
     def process(self, text: str) -> 'BanglaProcessor.ProcessResult':
         res = self.ProcessResult()
         res.original = text
+        res.punctuation_intensity = compute_punctuation_intensity(text)
 
         if not text or not text.strip():
             return res
 
         # --- Detect script ---
-        if _contains_bangla(text):
+        has_bangla = _contains_bangla(text)
+        has_latin = bool(re.search(r'[a-zA-Z]', text))
+
+        if has_bangla and has_latin:
+            # Mixed Bangla-English text
+            res.script = 'mixed'
+            res.is_supported = True
+            res.bangla_text = _normalise_bangla_unicode(text)
+            res.normalised_text = res.bangla_text
+            res.english_text = _bangla_to_english(res.bangla_text)
+            res.detected_slang = self._find_slang(res.bangla_text, BANGLA_SLANG_TO_ENGLISH)
+        elif has_bangla:
             res.script = 'bangla'
             res.is_supported = True
             res.bangla_text = _normalise_bangla_unicode(text)
+            res.normalised_text = res.bangla_text
             res.english_text = _bangla_to_english(res.bangla_text)
             res.detected_slang = self._find_slang(res.bangla_text, BANGLA_SLANG_TO_ENGLISH)
         elif _is_banglish(text):
             res.script = 'banglish'
             res.is_supported = True
-            res.bangla_text = self._transliterate_to_bangla(text)
-            res.english_text = _banglish_to_english(text)
-            res.detected_slang = self._find_slang(text.lower(), BANGLISH_SLANG_TO_ENGLISH)
+            normalised = _normalise_banglish(text)
+            res.normalised_text = normalised
+            res.bangla_text = self._transliterate_to_bangla(normalised)
+            res.english_text = _banglish_to_english(normalised)
+            res.detected_slang = self._find_slang(normalised, BANGLISH_SLANG_TO_ENGLISH)
         else:
             # Pure English or other script – mark as supported (let caller decide)
             res.script = 'english'
             res.is_supported = True
+            res.normalised_text = text
             res.english_text = text
             res.bangla_text = text
 
@@ -515,7 +728,8 @@ class BanglaProcessor:
     def get_context_hint(self, text: str) -> str:
         """
         Return a plain-English context hint about detected cultural/slang usage.
-        Useful for display or for prompting LLMs.
+        Covers indirect praise, exaggeration, irony, and expressive slang
+        patterns common in Bangla social media (Requirement §5).
         """
         res = self.process(text)
         hints = []
@@ -523,26 +737,73 @@ class BanglaProcessor:
             hints.append("Text is Banglish (Bangla written in Roman script).")
         elif res.script == 'bangla':
             hints.append("Text is written in Bangla (Unicode).")
+        elif res.script == 'mixed':
+            hints.append("Text is mixed Bangla-English.")
 
         # Slang context hints
         positive_slang = {
             "কঠিন", "কঠিন হইসে", "কঠিন হয়েছে",
             "ফাটাফাটি", "জোস", "দারুণ", "অসাধারণ",
+            "আগুন", "মারাত্মক", "ঝাকানাকা", "শানদার",
+            "অপূর্ব", "অপরূপ", "হৃদয়স্পর্শী",
             "kothin", "kothin hoise", "kothin hoyeche",
             "fatafati", "joss", "darun", "oshadharon",
+            "agun", "marattok", "jhakanaka", "shandaar",
+            "opurbo", "oporup", "hridoysparshi",
         }
         negative_slang = {
             "মন খারাপ", "কষ্ট লাগসে", "কান্না আসে",
+            "ভালোবাসা নেই", "কেউ নেই", "সব শেষ", "আর পারিনা",
             "mon kharap", "kosto lagse", "kanna ashe",
+            "bhalobasha nei", "keu nei", "shob shesh", "ar parina",
         }
+        anger_slang = {
+            "রাগ লাগসে", "পাগল বানাইছে", "মাথা খারাপ", "চুপ কর",
+            "raga lagse", "pagol banaiche", "matha kharap", "chup kor",
+        }
+        surprise_slang = {
+            "অবাক", "শক্ড হইসে", "সর্বনাশ", "কি হলো",
+            "obak", "shocked hoise", "sorbonash", "ki holo",
+        }
+
+        # Cultural context annotations
+        indirect_praise_words = {"কঠিন", "আগুন", "মারাত্মক", "kothin", "agun", "marattok"}
+        exaggeration_words = {"ফাটাফাটি", "fatafati", "অসাধারণ", "oshadharon", "ঝাকানাকা", "jhakanaka"}
+
         for slang in res.detected_slang:
-            if slang in positive_slang:
+            if slang in indirect_praise_words:
+                hints.append(
+                    f"'{slang}' is indirect Bangla praise — literal meaning is negative/intense "
+                    f"but in social media context it means 'awesome/amazing' (cultural exaggeration)."
+                )
+            elif slang in exaggeration_words:
+                hints.append(
+                    f"'{slang}' is Bangla social-media exaggeration expressing strong positive enthusiasm."
+                )
+            elif slang in positive_slang:
                 hints.append(
                     f"'{slang}' is a positive Bangla social-media expression meaning 'awesome/great'."
+                )
+            elif slang in anger_slang:
+                hints.append(
+                    f"'{slang}' is a Bangla expression of anger or frustration."
+                )
+            elif slang in surprise_slang:
+                hints.append(
+                    f"'{slang}' is a Bangla expression of surprise or shock."
                 )
             elif slang in negative_slang:
                 hints.append(
                     f"'{slang}' is a Bangla expression expressing sadness or emotional pain."
                 )
+
+        # Punctuation intensity hints
+        pi = res.punctuation_intensity
+        if pi.get('exclamations', 0) >= 3:
+            hints.append("Heavy exclamation marks suggest strong emotional intensity.")
+        if pi.get('positive_emoji', 0) >= 2:
+            hints.append("Multiple positive emojis reinforce positive sentiment.")
+        if pi.get('negative_emoji', 0) >= 2:
+            hints.append("Multiple negative emojis reinforce negative sentiment.")
 
         return ' '.join(hints) if hints else ''
