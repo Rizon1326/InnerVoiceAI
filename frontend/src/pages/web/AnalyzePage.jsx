@@ -242,21 +242,32 @@ function AnalysisResult({ result }) {
   const emotions = analysis.emotions || {}
   const personality = analysis.personality || {}
 
-  // Calculate dominant emotion
-  const emotionEntries = Object.entries(emotions).filter(([k, v]) => k !== 'neutral' && v > 0)
+  // Calculate dominant emotion - always pick the highest score across ALL emotions
+  const emotionEntries = Object.entries(emotions).filter(([, v]) => v > 0)
   const sortedEmotions = emotionEntries.sort((a, b) => b[1] - a[1])
   const dominantEmotion = sortedEmotions[0]?.[0] || 'neutral'
 
-  // Sentiment interpretation
+  // Sentiment interpretation - use the label from backend (highest-scoring class)
+  // score is the confidence of the dominant label (0-1), not a polarity value
   const sentimentScore = sentiment.score || 0
-  const getSentimentInterpretation = (score) => {
-    if (score >= 0.5) return { text: 'Very Positive', emoji: '🌟', color: 'text-green-500' }
-    if (score >= 0.1) return { text: 'Positive', emoji: '😊', color: 'text-emerald-500' }
-    if (score >= -0.1) return { text: 'Neutral', emoji: '😐', color: 'text-gray-500' }
-    if (score >= -0.5) return { text: 'Negative', emoji: '😔', color: 'text-orange-500' }
-    return { text: 'Very Negative', emoji: '😢', color: 'text-red-500' }
+  const sentimentLabel = (sentiment.label || '').toLowerCase()
+  const getSentimentInterpretation = (label, score) => {
+    if (label === 'positive') {
+      return score >= 0.75
+        ? { text: 'Very Positive', emoji: '🌟', color: 'text-green-500' }
+        : { text: 'Positive', emoji: '😊', color: 'text-emerald-500' }
+    }
+    if (label === 'negative') {
+      return score >= 0.75
+        ? { text: 'Very Negative', emoji: '😢', color: 'text-red-500' }
+        : { text: 'Negative', emoji: '😔', color: 'text-orange-500' }
+    }
+    // neutral (or unknown)
+    return score >= 0.75
+      ? { text: 'Very Neutral', emoji: '😐', color: 'text-gray-400' }
+      : { text: 'Neutral', emoji: '🙂', color: 'text-gray-500' }
   }
-  const sentimentInfo = getSentimentInterpretation(sentimentScore)
+  const sentimentInfo = getSentimentInterpretation(sentimentLabel, sentimentScore)
 
   return (
     <div className="space-y-5 fade-in">
@@ -458,14 +469,13 @@ function EmotionPanel({ emotions, dominantEmotion }) {
       </div>
 
       {/* Dominant emotion insight */}
-      {dominantEmotion !== 'neutral' && (
-        <div className="rounded-lg border bg-gradient-to-r from-amber-500/5 to-transparent p-3">
-          <p className="text-sm text-muted-foreground flex items-start gap-2">
-            <span className="text-amber-500 mt-0.5">•</span>
-            Dominant emotion detected: <strong className="text-foreground capitalize">{dominantEmotion}</strong>
-          </p>
-        </div>
-      )}
+      <div className="rounded-lg border bg-gradient-to-r from-amber-500/5 to-transparent p-3">
+        <p className="text-sm text-muted-foreground flex items-start gap-2">
+          <span className="text-amber-500 mt-0.5">•</span>
+          Dominant emotion detected: <strong className="text-foreground capitalize">{dominantEmotion}</strong>
+          {' '}({((emotions[dominantEmotion] || 0) * 100).toFixed(0)}%)
+        </p>
+      </div>
     </div>
   )
 }
