@@ -281,21 +281,21 @@ function Navbar({ onMenuClick, sidebarOpen }) {
             <div className="absolute right-0 mt-2 w-48 rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
               <div className="p-2">
                 <div className="px-2 py-1.5 flex items-center gap-2">
-                  <Avatar src={user?.avatar_url} name={user?.username} size="sm" />
+                  {/* <Avatar src={user?.avatar_url} name={user?.username} size="sm" /> */}
                   <div>
-                    <p className="text-sm font-medium">{user?.username}</p>
+                    {/* <p className="text-sm font-medium">{user?.username}</p> */}
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>
                 <hr className="my-2" />
-                <Link
+                {/* <Link
                   to="/settings"
                   className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Settings className="h-4 w-4" />
                   Settings
-                </Link>
+                </Link> */}
                 <button
                   onClick={() => {
                     setUserMenuOpen(false)
