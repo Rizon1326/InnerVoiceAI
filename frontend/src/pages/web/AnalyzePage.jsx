@@ -137,7 +137,7 @@ function AnalyzeContent({ toast }) {
                 Analyze Text
               </Button>
               {result && (
-                <Button type="button" variant="outline" onClick={reset}>
+                <Button type="button" variant="outline" onClick={reset} title="Clear results">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               )}
@@ -149,7 +149,7 @@ function AnalyzeContent({ toast }) {
             <button
               type="button"
               onClick={goToRewrite}
-              className="rewrite-cta-btn w-full group relative flex items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold overflow-hidden"
+              className="rewrite-cta-btn w-full group relative flex items-center justify-center gap-3 rounded-xl px-5 py-3 text-sm font-semibold overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
             >
               {/* Animated gradient background */}
               <span className="rewrite-cta-bg absolute inset-0 rounded-xl" />
@@ -503,11 +503,11 @@ function CategorySelector({ activeCategory, onSelect }) {
             type="button"
             onClick={() => onSelect(cat.id)}
             className={cn(
-              'relative rounded-xl border p-3 text-left transition-all duration-300 cursor-pointer',
-              'hover:scale-[1.02] active:scale-[0.98]',
+              'relative rounded-xl border p-3 text-left transition-all duration-200 cursor-pointer',
+              'hover:scale-[1.03] active:scale-[0.97]',
               isActive
                 ? cn('ring-2 shadow-lg z-10', cat.bgColor, cat.borderColor, cat.ringColor)
-                : 'bg-card border-border/50 opacity-75 hover:opacity-100 hover:border-border'
+                : 'bg-card border-border/50 opacity-75 hover:opacity-100 hover:border-primary/30 hover:shadow-sm hover:bg-accent/30'
             )}
           >
             <div className="flex flex-col items-center text-center gap-1.5">
