@@ -200,7 +200,7 @@ function Sidebar({ isOpen, isMobile, mobileMenuOpen, onClose }) {
       {/* User Section */}
       <div className="p-4">
         <div className={cn('flex items-center', isOpen || mobileMenuOpen ? 'gap-3' : 'justify-center')}>
-          <Avatar name={user?.username} size="default" />
+          <Avatar src={user?.avatar_url} name={user?.username} size="default" />
           {(isOpen || mobileMenuOpen) && (
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-white">{user?.username}</p>
@@ -272,7 +272,7 @@ function Navbar({ onMenuClick, sidebarOpen }) {
             className="flex items-center gap-2"
             onClick={() => setUserMenuOpen(!userMenuOpen)}
           >
-            <Avatar name={user?.username} size="sm" />
+            <Avatar src={user?.avatar_url} name={user?.username} size="sm" />
             <span className="hidden md:inline-block text-sm">{user?.username}</span>
             <ChevronDown className="h-4 w-4" />
           </Button>
@@ -280,9 +280,12 @@ function Navbar({ onMenuClick, sidebarOpen }) {
           {userMenuOpen && (
             <div className="absolute right-0 mt-2 w-48 rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
               <div className="p-2">
-                <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{user?.username}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <div className="px-2 py-1.5 flex items-center gap-2">
+                  <Avatar src={user?.avatar_url} name={user?.username} size="sm" />
+                  <div>
+                    <p className="text-sm font-medium">{user?.username}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
                 </div>
                 <hr className="my-2" />
                 <Link
