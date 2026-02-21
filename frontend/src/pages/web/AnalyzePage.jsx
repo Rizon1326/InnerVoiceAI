@@ -339,6 +339,156 @@ function BanglaMetaBadge({ meta }) {
 }
 
 /**
+ * Enhanced context-aware analysis panel – displays tone, emotion label,
+ * normalized text, sentiment score (-1 to 1), and rewrite suggestions.
+ */
+function EnhancedAnalysisPanel({ ctx }) {
+  if (!ctx) return null
+
+  const {
+    detected_language,
+    normalized_text,
+    detected_tone,
+    emotion_label,
+    sentiment_score,
+    rewrite_suggestion,
+    detected_slang,
+    context_hint,
+  } = ctx
+
+  // Tone badge styling
+  const toneBadges = {
+    friendly: { emoji: '😊', color: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30' },
+    family: { emoji: '🏠', color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30' },
+    serious: { emoji: '🧐', color: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30' },
+    humorous: { emoji: '😂', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+    sarcastic: { emoji: '😏', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30' },
+    neutral: { emoji: '😐', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' },
+  }
+
+  // Emotion label styling
+  const emotionBadges = {
+    appreciation: { emoji: '🌟', color: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30' },
+    humor: { emoji: '😄', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+    sarcasm: { emoji: '🙄', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30' },
+    gratitude: { emoji: '🙏', color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30' },
+    joy: { emoji: '😄', color: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30' },
+    sadness: { emoji: '😢', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+    anger: { emoji: '😠', color: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30' },
+    fear: { emoji: '😨', color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30' },
+    surprise: { emoji: '😲', color: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/30' },
+    neutral: { emoji: '😐', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' },
+  }
+
+  // Language label styling
+  const langBadges = {
+    'Bangla': { emoji: '🇧🇩', color: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30' },
+    'Banglish': { emoji: '🔤', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+    'Mixed': { emoji: '🌐', color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30' },
+    'English': { emoji: '🇬🇧', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30' },
+  }
+
+  const toneInfo = toneBadges[detected_tone] || toneBadges.neutral
+  const emotionInfo = emotionBadges[emotion_label] || emotionBadges.neutral
+  const langInfo = langBadges[detected_language] || langBadges['English']
+
+  // Sentiment score color (-1 to 1)
+  const sentScoreColor = sentiment_score > 0.3
+    ? 'text-green-500'
+    : sentiment_score < -0.3
+      ? 'text-red-500'
+      : 'text-gray-500'
+
+  // Sentiment gauge width (map -1..1 → 0..100)
+  const gaugePercent = ((sentiment_score + 1) / 2) * 100
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/50 p-4 space-y-4">
+      {/* Row 1: Language + Tone + Emotion Label */}
+      <div className="flex flex-wrap gap-2">
+        {/* Language */}
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold', langInfo.color)}>
+          <span>{langInfo.emoji}</span> {detected_language}
+        </span>
+        {/* Tone */}
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold', toneInfo.color)}>
+          <span>{toneInfo.emoji}</span> {detected_tone}
+        </span>
+        {/* Emotion label */}
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold', emotionInfo.color)}>
+          <span>{emotionInfo.emoji}</span> {emotion_label}
+        </span>
+      </div>
+
+      {/* Row 2: Normalized text */}
+      {normalized_text && (
+        <div className="rounded-lg bg-muted/50 px-3 py-2">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Normalized Text</div>
+          <p className="text-sm font-medium leading-relaxed">{normalized_text}</p>
+        </div>
+      )}
+
+      {/* Row 3: Sentiment Score Gauge (-1 to 1) */}
+      {sentiment_score !== undefined && sentiment_score !== null && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Sentiment Score</span>
+            <span className={cn('text-sm font-bold tabular-nums', sentScoreColor)}>
+              {sentiment_score > 0 ? '+' : ''}{sentiment_score.toFixed(2)}
+            </span>
+          </div>
+          <div className="relative h-2.5 rounded-full bg-gradient-to-r from-red-500/20 via-gray-300/30 to-green-500/20 overflow-hidden">
+            <div
+              className="absolute top-0 h-full w-2.5 rounded-full bg-foreground/80 transition-all duration-500 -translate-x-1/2"
+              style={{ left: `${gaugePercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+            <span>-1</span>
+            <span>0</span>
+            <span>+1</span>
+          </div>
+        </div>
+      )}
+
+      {/* Row 4: Detected slang tags */}
+      {detected_slang && detected_slang.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {detected_slang.slice(0, 8).map((s) => (
+            <span
+              key={s}
+              className="inline-block rounded-full bg-muted border border-border/50 px-2 py-0.5 text-[11px] font-mono text-muted-foreground"
+            >
+              {s}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Row 5: Rewrite suggestions */}
+      {rewrite_suggestion && rewrite_suggestion.length > 0 && (
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5 space-y-1.5">
+          <div className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1.5">
+            <Wand2 className="h-3 w-3" />
+            Rewrite Suggestions
+          </div>
+          {rewrite_suggestion.map((s, i) => (
+            <p key={i} className="text-sm text-foreground/90 leading-relaxed pl-1 border-l-2 border-blue-500/30 ml-0.5">
+              {s}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Row 6: Context hint */}
+      {context_hint && (
+        <p className="text-xs text-muted-foreground/80 leading-relaxed italic">{context_hint}</p>
+      )}
+    </div>
+  )
+}
+
+/**
  * Stacked category selector cards
  */
 function CategorySelector({ activeCategory, onSelect }) {

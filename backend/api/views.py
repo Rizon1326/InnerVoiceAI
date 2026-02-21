@@ -100,6 +100,15 @@ def analyze_text(request):
 
         # Build the structured output (Requirement §7)
         structured_analysis = {
+            # Enhanced fields (new)
+            'detected_language': ctx['detected_language'],
+            'normalized_text': ctx['normalized_text'],
+            'detected_tone': ctx['detected_tone'],
+            'emotion_label': ctx['emotion_label'],
+            'sentiment_score': ctx['sentiment_score'],
+            'rewrite_suggestion': ctx['rewrite_suggestion'],
+
+            # Existing fields
             'detected_language_type': ctx['detected_language_type'],
             'normalised_text': ctx['normalised_text'],
             'translated_text': ctx['translated_text'],

@@ -15,12 +15,20 @@ export function useAnalysis() {
     setError(null)
     try {
       const response = await analysisService.analyzeText({ text })
-      // Backend returns { success: true, data: {...}, bangla_meta?: {...} }
+      // Backend returns { success: true, data: {...}, context_analysis: {...} }
       const data = response.data || response
+      const contextAnalysis = response.context_analysis || null
       // Attach bangla_meta to the result object so the UI can display it
-      const enriched = response.bangla_meta
-        ? { ...data, bangla_meta: response.bangla_meta }
-        : data
+      const bangla_meta = response.bangla_meta || (contextAnalysis ? {
+        script: contextAnalysis.detected_language_type,
+        detected_slang: contextAnalysis.detected_slang,
+        context_hint: contextAnalysis.context_hint,
+      } : null)
+      const enriched = {
+        ...data,
+        ...(bangla_meta ? { bangla_meta } : {}),
+        ...(contextAnalysis ? { context_analysis: contextAnalysis } : {}),
+      }
       setResult(enriched)
       setStatus(LOADING_STATES.SUCCESS)
       return enriched

@@ -3,8 +3,12 @@ Context-Aware Bangla Post Analyzer
 ------------------------------------
 Central engine that combines all analysis services to produce a single
 structured output (Requirement §7) with:
-  - detected_language_type
-  - normalised_text
+  - detected_language / detected_language_type
+  - normalised_text / normalized_text
+  - detected_tone (friendly / family / serious / humorous / sarcastic)
+  - emotion_label (appreciation / humor / sarcasm / neutral / …)
+  - sentiment_score (-1 → 1)
+  - rewrite_suggestion (optional, based on tone)
   - sentiment (polarity + score + scores)
   - emotion (label + scores)
   - intent (communicative intent classification)
@@ -13,17 +17,195 @@ structured output (Requirement §7) with:
 Implements:
   §1 Multi-format language understanding
   §2 Banglish normalisation pipeline (delegated to BanglaProcessor)
-  §3 Context-aware meaning interpretation
+  §3 Context-aware meaning interpretation (tone + emoji/punctuation)
   §4 Emotion + intent classification
   §5 Cultural awareness (indirect praise, exaggeration, irony, slang)
   §6 Fail-safe language handling (never reject Bangla/Banglish)
 """
 
 from __future__ import annotations
+import re
 from services.bangla_processor import BanglaProcessor, compute_punctuation_intensity
 from services.sentiment_analyzer import SentimentAnalyzer
 from services.emotion_detector import EmotionDetector
 from services.language_detector import LanguageDetector
+
+# =====================================================================
+#  TONE DETECTION  (§3 – context & tone detection)
+# =====================================================================
+
+# Tone keyword sets – checked in priority order
+TONE_PATTERNS: dict[str, list[str]] = {
+    'sarcastic': [
+        # Bangla
+        'নাকি', 'হাহাহা', 'বাহ বাহ', 'ওয়াও রে', 'কি আর বলব',
+        'যত্ত সব', 'কি দারুণ', 'বাহ রে', 'চমৎকার তো',
+        # Banglish
+        'naki', 'hahaha', 'bah bah', 'wow re', 'ki ar bolbo',
+        'joto shob', 'ki darun', 'bah re', 'chomotkar to',
+        # English
+        'yeah right', 'sure thing', 'oh great', 'how wonderful',
+        'as if', 'totally', 'oh really',
+    ],
+    'humorous': [
+        # Bangla
+        'হাহা', 'লল', 'রোফল', 'খিক খিক', 'মজা', 'পাগলামি',
+        'হাসি পায়', 'হাসতে হাসতে', 'কমেডি',
+        # Banglish
+        'haha', 'lol', 'rofl', 'lmao', 'khik khik', 'moja', 'paglami',
+        'hashi pay', 'hashte hashte', 'comedy', 'hilarious',
+        # English
+        'haha', 'lol', 'rofl', 'lmao', 'funny', 'hilarious',
+    ],
+    'family': [
+        # Bangla
+        'আব্বা', 'আম্মা', 'বাবা', 'মা', 'দাদা', 'দিদি', 'দাদু', 'নানু',
+        'মামা', 'কাকা', 'চাচা', 'ফুপু', 'খালা', 'পরিবার',
+        'আপনি', 'আপনার', 'আপনাদের', 'করুন', 'করেন', 'আসেন', 'বলেন',
+        # Banglish
+        'abba', 'amma', 'baba', 'ma', 'dada', 'didi', 'dadu', 'nanu',
+        'mama', 'kaka', 'chacha', 'fupu', 'khala', 'poribar',
+        'apni', 'apnar', 'apnader', 'korun', 'koren', 'ashen', 'bolen',
+        # English
+        'family', 'mother', 'father', 'parents', 'grandma', 'grandpa',
+        'uncle', 'aunt', 'sir', 'ma\'am', 'respect',
+    ],
+    'serious': [
+        # Bangla
+        'সমস্যা', 'গুরুত্বপূর্ণ', 'জরুরি', 'প্রয়োজন', 'দরকার',
+        'বিবেচনা', 'সিদ্ধান্ত', 'কারণ', 'ফলে', 'তাই', 'সুতরাং',
+        'প্রসঙ্গে', 'পরিস্থিতি', 'উচিত',
+        # Banglish
+        'somossa', 'guruttopurno', 'joruri', 'proyojon', 'dorkar',
+        'bibechona', 'siddhanto', 'kaaron', 'fole', 'sutrang',
+        'ucit', 'poristhiti',
+        # English
+        'important', 'serious', 'urgent', 'consider', 'decision',
+        'issue', 'problem', 'therefore', 'consequently', 'significant',
+        'professional', 'formal', 'regarding',
+    ],
+    'friendly': [
+        # Bangla
+        'ভাই', 'বন্ধু', 'রে', 'দোস্ত', 'আরে', 'ইয়ার',
+        'খুশি', 'চলবে', 'হবে', 'কুল',
+        # Banglish
+        'bhai', 'bondhu', 'dost', 're', 'arey', 'yaar',
+        'bro', 'buddy', 'dude', 'cool', 'chill',
+        'khushi', 'cholbe', 'hobe', 'mast', 'masth',
+        # English
+        'friend', 'buddy', 'bro', 'sis', 'dude', 'mate',
+        'hey', 'yo', 'cool', 'chill', 'awesome',
+    ],
+}
+
+# Sarcasm signals from punctuation / emoji
+_SARCASM_EMOJI_RE = re.compile(r'[🙄😏😒🤡💅]')
+_LAUGHING_EMOJI_RE = re.compile(r'[😂🤣😆😹]')
+
+
+def _detect_tone(text: str, punctuation: dict, sentiment_label: str) -> str:
+    """
+    Detect the conversational tone of the message.
+    Returns one of: friendly, family, serious, humorous, sarcastic
+    """
+    lower = text.lower()
+
+    # Score each tone
+    scores: dict[str, float] = {k: 0.0 for k in TONE_PATTERNS}
+
+    for tone, keywords in TONE_PATTERNS.items():
+        for kw in keywords:
+            if kw in lower or kw in text:
+                scores[tone] += 1.0
+
+    # Sarcasm boost from emojis + negative sentiment with positive words
+    sarcasm_emoji_count = len(_SARCASM_EMOJI_RE.findall(text))
+    if sarcasm_emoji_count:
+        scores['sarcastic'] += sarcasm_emoji_count * 1.5
+
+    # Heuristic: positive words + negative sentiment = likely sarcasm
+    if sentiment_label == 'negative' and scores.get('friendly', 0) > 0:
+        scores['sarcastic'] += 1.0
+
+    # Humor boost from laughing emojis
+    laughing_emoji_count = len(_LAUGHING_EMOJI_RE.findall(text))
+    if laughing_emoji_count:
+        scores['humorous'] += laughing_emoji_count * 1.2
+
+    # Exclamation marks boost friendliness / humor
+    excl = punctuation.get('exclamations', 0)
+    if excl >= 3:
+        scores['friendly'] += 0.5
+        scores['humorous'] += 0.3
+
+    # Repeated characters (e.g. "daaaaarun") → playful / friendly
+    if re.search(r'(.)\1{3,}', lower):
+        scores['friendly'] += 0.5
+        scores['humorous'] += 0.5
+
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else 'friendly'  # default to friendly
+
+
+# =====================================================================
+#  EMOTION LABEL MAPPING  (enhanced output – emotion_label)
+# =====================================================================
+
+def _map_emotion_label(
+    dominant_emotion: str,
+    intent: str,
+    tone: str,
+    sentiment_label: str,
+) -> str:
+    """
+    Map the raw dominant_emotion + intent + tone into a user-facing
+    emotion label such as: appreciation, humor, sarcasm, neutral,
+    joy, sadness, anger, fear, surprise.
+    """
+    # Sarcastic tone overrides
+    if tone == 'sarcastic':
+        return 'sarcasm'
+
+    # Humorous tone
+    if tone == 'humorous':
+        return 'humor'
+
+    # Appreciation: positive + joy + appreciation intent
+    if intent == 'appreciation' or (
+        sentiment_label == 'positive' and dominant_emotion == 'joy'
+    ):
+        return 'appreciation'
+
+    # Gratitude
+    if intent == 'gratitude':
+        return 'gratitude'
+
+    # Direct emotion pass-through for strong negatives
+    if dominant_emotion in ('sadness', 'anger', 'fear', 'surprise'):
+        return dominant_emotion
+
+    # Neutral fallback
+    if dominant_emotion == 'neutral' and sentiment_label == 'neutral':
+        return 'neutral'
+
+    # Default: use the dominant emotion name
+    return dominant_emotion
+
+
+# =====================================================================
+#  SENTIMENT SCORE → NORMALISED -1 … 1  (enhanced output)
+# =====================================================================
+
+def _compute_sentiment_score_normalized(scores: dict) -> float:
+    """
+    Convert the three-class sentiment scores {positive, neutral, negative}
+    into a single float in [-1, 1].
+    Formula: positive - negative  (neutral acts as dampener).
+    """
+    pos = scores.get('positive', 0.0)
+    neg = scores.get('negative', 0.0)
+    return round(pos - neg, 4)
+
 
 # =====================================================================
 #  INTENT CLASSIFICATION  (Requirement §4)
@@ -190,8 +372,10 @@ class ContextAnalyzer:
     Returns
     -------
     dict with keys:
-        detected_language_type, normalised_text, sentiment, emotion,
-        intent, reasoning, context_hint, punctuation_intensity
+        detected_language, detected_language_type, normalized_text,
+        normalised_text, detected_tone, emotion_label, sentiment_score,
+        rewrite_suggestion, sentiment, emotion, intent, reasoning,
+        context_hint, punctuation_intensity
     """
 
     def __init__(
@@ -216,7 +400,9 @@ class ContextAnalyzer:
 
         Returns
         -------
-        dict  – structured output per Requirement §7.
+        dict  – structured output with enhanced fields:
+            detected_language, normalized_text, detected_tone,
+            emotion_label, sentiment_score, rewrite_suggestion, …
         """
         if not text or not text.strip():
             return self._empty_result()
@@ -250,13 +436,52 @@ class ContextAnalyzer:
         # 9. Re-determine dominant emotion after adjustments
         dominant_emotion = max(emotions, key=emotions.get)
 
-        # 10. Reasoning summary
+        # 10. Tone detection (friendly / family / serious / humorous / sarcastic)
+        detected_tone = _detect_tone(text, punctuation, sentiment['label'])
+
+        # 11. Emotion label (appreciation / humor / sarcasm / neutral / …)
+        emotion_label = _map_emotion_label(
+            dominant_emotion, intent, detected_tone, sentiment['label']
+        )
+
+        # 12. Normalised sentiment score in [-1, 1]
+        sentiment_score = _compute_sentiment_score_normalized(sentiment['scores'])
+
+        # 13. Reasoning summary
         reasoning = _generate_reasoning(proc, sentiment, emotions, intent, punctuation)
 
-        # 11. Context hint
+        # 14. Context hint
         context_hint = self.bp.get_context_hint(text)
 
+        # 15. Human-readable detected language label
+        detected_language = {
+            'bangla': 'Bangla',
+            'banglish': 'Banglish',
+            'mixed': 'Mixed',
+            'english': 'English',
+        }.get(proc.script, proc.script.title())
+
+        # 16. Build normalized text for display
+        #     For Banglish, prefer Bangla transliteration; else use proc result
+        normalized_text = proc.bangla_text if proc.script == 'banglish' else (
+            proc.normalised_text or proc.original
+        )
+
+        # 17. Rewrite suggestions (tone-based, optional)
+        rewrite_suggestion = self._generate_rewrite_suggestions(
+            text, proc, detected_tone, sentiment_score, language
+        )
+
         return {
+            # ---- Enhanced output fields (new) ----
+            'detected_language': detected_language,
+            'normalized_text': normalized_text,
+            'detected_tone': detected_tone,
+            'emotion_label': emotion_label,
+            'sentiment_score': sentiment_score,
+            'rewrite_suggestion': rewrite_suggestion,
+
+            # ---- Existing fields (backward-compatible) ----
             'detected_language_type': proc.script,  # bangla | banglish | mixed | english
             'normalised_text': proc.normalised_text or proc.original,
             'translated_text': proc.english_text,
@@ -343,9 +568,60 @@ class ContextAnalyzer:
         return adjusted_sentiment, emo
 
     # ------------------------------------------------------------------
+    def _generate_rewrite_suggestions(
+        self,
+        original_text: str,
+        proc,
+        detected_tone: str,
+        sentiment_score: float,
+        language: str,
+    ) -> list[str]:
+        """
+        Generate optional tone-based rewrite suggestions.
+        Returns up to 2 suggestions. Uses rule-based templates for
+        fast response; Gemini-based rewriting is on the /rewrite endpoint.
+        """
+        suggestions: list[str] = []
+
+        bangla_text = proc.bangla_text if proc.script in ('bangla', 'banglish', 'mixed') else ''
+
+        # Only generate suggestions when there's meaningful Bangla/Banglish content
+        if not bangla_text or proc.script == 'english':
+            return suggestions
+
+        # Tone-aware templates
+        if detected_tone == 'friendly' and sentiment_score > 0.3:
+            # Friendly + positive → enthusiastic rewrites
+            if bangla_text:
+                suggestions.append(f"সত্যিই দারুণ! {bangla_text}")
+            suggestions.append(f"Wow! {proc.normalised_text or original_text}")
+        elif detected_tone == 'sarcastic':
+            # Offer a sincere alternative
+            suggestions.append(f"আমি সত্যিই মনে করি — {bangla_text}")
+        elif detected_tone == 'humorous':
+            suggestions.append(f"😄 {bangla_text}")
+        elif detected_tone == 'serious' and sentiment_score < -0.2:
+            # Serious + negative → more constructive
+            suggestions.append(f"আমি বুঝতে পারছি। {bangla_text}")
+            suggestions.append(f"এটা নিয়ে আমরা কথা বলতে পারি — {bangla_text}")
+        elif detected_tone == 'family':
+            suggestions.append(f"আদরের সাথে — {bangla_text}")
+
+        return suggestions[:2]  # Max 2
+
+    # ------------------------------------------------------------------
     @staticmethod
     def _empty_result() -> dict:
         return {
+            # Enhanced fields
+            'detected_language': 'Unknown',
+            'normalized_text': '',
+            'detected_tone': 'neutral',
+            'emotion_label': 'neutral',
+            'sentiment_score': 0.0,
+            'rewrite_suggestion': [],
+
+            # Existing fields
             'detected_language_type': 'unknown',
             'normalised_text': '',
             'translated_text': '',
