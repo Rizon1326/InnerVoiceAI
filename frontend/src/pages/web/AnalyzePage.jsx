@@ -159,7 +159,7 @@ function AnalyzeContent({ toast }) {
               <span className="relative flex items-center gap-2 text-white">
                 <Wand2 className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-12" />
                 Rewrite Suggestion
-                <span className="text-blue-200 text-xs font-normal">→</span>
+                {/* <span className="text-blue-200 text-xs font-normal">→</span> */}
               </span>
             </button>
           </div>
