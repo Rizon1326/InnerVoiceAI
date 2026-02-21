@@ -1,5 +1,8 @@
 import re
 from collections import Counter
+from services.bangla_processor import BanglaProcessor
+
+_bangla_proc = BanglaProcessor()
 
 class PersonalityAnalyzer:
     """
@@ -13,38 +16,59 @@ class PersonalityAnalyzer:
     
     # Trait indicators for each OCEAN dimension
     OPENNESS_INDICATORS = {
-        'words': ['imagine', 'creative', 'novel', 'unique', 'interesting', 'curious', 
+        'words': ['imagine', 'creative', 'novel', 'unique', 'interesting', 'curious',
                   'explore', 'discover', 'different', 'art', 'philosophy', 'abstract',
-                  'innovative', 'think', 'perhaps', 'maybe', 'could', 'would', 'possibility'],
-        'patterns': [r'\bwhat\s+if\b', r'\bi\s+wonder\b', r'\bi\s+think\b'],
+                  'innovative', 'think', 'perhaps', 'maybe', 'could', 'would', 'possibility',
+                  # Bangla/Banglish openness
+                  'চিন্তা', 'ভাবছি', 'কল্পনা', 'নতুন', 'আলাদা', 'সৃজনশীল',
+                  'chinta', 'vabchi', 'nতুন', 'alada', 'shrishti'],
+        'patterns': [r'\bwhat\s+if\b', r'\bi\s+wonder\b', r'\bi\s+think\b',
+                     r'\bkena\s+na\b', r'\bki\s+hobe\b'],
     }
-    
+
     CONSCIENTIOUSNESS_INDICATORS = {
         'words': ['plan', 'organize', 'schedule', 'detail', 'specific', 'precise',
                   'responsible', 'careful', 'systematic', 'goal', 'accomplish',
-                  'deadline', 'efficient', 'structure', 'should', 'must', 'required'],
+                  'deadline', 'efficient', 'structure', 'should', 'must', 'required',
+                  # Bangla/Banglish conscientiousness
+                  'পরিকল্পনা', 'সময়মতো', 'দায়িত্ব', 'লক্ষ্য',
+                  'porikalpona', 'shomoyomoto', 'daityo', 'lakkho'],
         'patterns': [r'\bshould\s+have\b', r'\bmust\s+be\b'],
     }
-    
+
     EXTRAVERSION_INDICATORS = {
         'words': ['party', 'social', 'meeting', 'chat', 'talk', 'friend', 'group',
                   'together', 'fun', 'exciting', 'energetic', 'outgoing', 'love',
-                  'awesome', 'amazing', 'wonderful', 'great', 'fantastic'],
-        'patterns': [r'!{2,}', r'\blove\s+to\b', r'\bcan\'t\s+wait\b'],
+                  'awesome', 'amazing', 'wonderful', 'great', 'fantastic',
+                  # Bangla/Banglish extraversion
+                  'বন্ধু', 'আড্ডা', 'মজা', 'একসাথে', 'আনন্দ', 'উৎসব',
+                  'জোস', 'ফাটাফাটি', 'দারুণ', 'অসাধারণ', 'কঠিন',
+                  'bondhu', 'adda', 'moja', 'ekshate', 'anondo', 'utshob',
+                  'joss', 'fatafati', 'darun', 'oshadharon', 'kothin'],
+        'patterns': [r'!{2,}', r'\blove\s+to\b', r'\bcan\'t\s+wait\b',
+                     r'\badda\b', r'\bmoja\b'],
     }
-    
+
     AGREEABLENESS_INDICATORS = {
         'words': ['help', 'support', 'understand', 'empathy', 'grateful', 'thank',
                   'cooperate', 'together', 'kind', 'friendly', 'apologize', 'sorry',
-                  'agree', 'care', 'love', 'compassion', 'share', 'respect'],
-        'patterns': [r'\bplease\b', r'\bthank\s+you\b'],
+                  'agree', 'care', 'love', 'compassion', 'share', 'respect',
+                  # Bangla/Banglish agreeableness
+                  'ধন্যবাদ', 'সাহায্য', 'বুঝি', 'ভালোবাসা', 'মাফ', 'দুঃখিত',
+                  'dhonnobad', 'shahajjo', 'bujhi', 'valobasha', 'maaf', 'dukkhito'],
+        'patterns': [r'\bplease\b', r'\bthank\s+you\b',
+                     r'\bdhonnobad\b', r'\bmaaf\s+koro\b'],
     }
-    
+
     NEUROTICISM_INDICATORS = {
         'words': ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'stressed',
                   'depressed', 'hate', 'terrible', 'awful', 'horrible', 'disaster',
-                  'fail', 'lost', 'pain', 'suffer', 'angry', 'mad', 'upset'],
-        'patterns': [r'!!!+', r'\bi\s+hate\b', r'\bwhy\s+me\b'],
+                  'fail', 'lost', 'pain', 'suffer', 'angry', 'mad', 'upset',
+                  # Bangla/Banglish neuroticism
+                  'কষ্ট', 'দুঃখ', 'কান্না', 'ভয়', 'রাগ', 'মন খারাপ', 'হতাশ',
+                  'kosto', 'dukkho', 'kanna', 'bhoy', 'raga', 'mon kharap', 'hotash'],
+        'patterns': [r'!!!+', r'\bi\s+hate\b', r'\bwhy\s+me\b',
+                     r'\bkeno\s+ami\b', r'\bkanna\b'],
     }
     
     def __init__(self):
@@ -59,19 +83,28 @@ class PersonalityAnalyzer:
     def analyze(self, text, sentiment_score=0.5, emotions=None):
         """
         Analyze text and sentiment/emotions to determine personality traits.
-        
+
         Args:
             text (str): The text to analyze
             sentiment_score (float): Sentiment score (0-1, where 1 is most positive)
             emotions (dict): Emotion scores {emotion_name: score}
-        
+
         Returns:
             dict: OCEAN trait scores (0-1 for each trait)
         """
         if not text:
             return self._default_traits()
-        
-        text_lower = text.lower()
+
+        # For Bangla/Banglish: work on the translated English text
+        # but also keep the original for indicator matching
+        analysis_text = text
+        if _bangla_proc.is_bangla_or_banglish(text):
+            translated = _bangla_proc.get_model_input(text)
+            # Combine both: translated English + original so Bangla/Banglish
+            # indicator words defined in the lists above are also matched
+            analysis_text = translated + ' ' + text
+
+        text_lower = analysis_text.lower()
         
         # Calculate trait scores based on text indicators
         openness_score = self._score_openness(text_lower)

@@ -12,6 +12,7 @@ from services.personality_analyzer import PersonalityAnalyzer
 from services.gemini_service import GeminiService
 from services.text_rewriter import TextRewriter
 from services.progress_tracker import ProgressTracker
+from services.bangla_processor import BanglaProcessor
 
 
 # Initialize services
@@ -21,6 +22,7 @@ language_detector = LanguageDetector()
 personality_analyzer = PersonalityAnalyzer()
 gemini_service = GeminiService()
 text_rewriter = TextRewriter()
+bangla_processor = BanglaProcessor()
 
 
 @api_view(['GET'])
@@ -41,13 +43,11 @@ def analyze_text(request):
                 'error': 'Text too short'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Detect language
+        # Detect language — Bangla (Unicode) and Banglish both resolve to 'bn'
         language = language_detector.detect_language(text)
-        if not language_detector.is_supported(text):
-            return Response({
-                'success': False,
-                'error': 'Unsupported language'
-            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # All non-empty text is supported; 'bn' covers Bangla + Banglish
+        # (no "Unsupported language" rejection)
         
         # Analyze sentiment
         sentiment = sentiment_analyzer.analyze(text, language)
@@ -91,11 +91,23 @@ def analyze_text(request):
         
         # Update daily progress
         ProgressTracker.update_daily_progress(user)
-        
+
+        # Build Bangla-specific metadata for the response
+        bangla_meta = {}
+        if language == 'bn' or bangla_processor.is_bangla_or_banglish(text):
+            proc_result = bangla_processor.process(text)
+            bangla_meta = {
+                'script': proc_result.script,           # 'bangla' | 'banglish'
+                'detected_slang': proc_result.detected_slang,
+                'context_hint': bangla_processor.get_context_hint(text),
+                'normalised_text': proc_result.bangla_text,
+            }
+
         serializer = PostSerializer(post)
         return Response({
             'success': True,
-            'data': serializer.data
+            'data': serializer.data,
+            **({"bangla_meta": bangla_meta} if bangla_meta else {}),
         })
         
     except Exception as e:

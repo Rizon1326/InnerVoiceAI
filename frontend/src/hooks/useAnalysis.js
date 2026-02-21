@@ -15,11 +15,15 @@ export function useAnalysis() {
     setError(null)
     try {
       const response = await analysisService.analyzeText({ text })
-      // Backend returns { success: true, data: {...} }
+      // Backend returns { success: true, data: {...}, bangla_meta?: {...} }
       const data = response.data || response
-      setResult(data)
+      // Attach bangla_meta to the result object so the UI can display it
+      const enriched = response.bangla_meta
+        ? { ...data, bangla_meta: response.bangla_meta }
+        : data
+      setResult(enriched)
       setStatus(LOADING_STATES.SUCCESS)
-      return data
+      return enriched
     } catch (err) {
       setError(err.message)
       setStatus(LOADING_STATES.ERROR)

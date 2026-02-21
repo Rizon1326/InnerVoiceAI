@@ -241,6 +241,7 @@ function AnalysisResult({ result }) {
   const sentiment = analysis.sentiment || {}
   const emotions = analysis.emotions || {}
   const personality = analysis.personality || {}
+  const bangla_meta = result.bangla_meta || null
 
   // Calculate dominant emotion - always pick the highest score across ALL emotions
   const emotionEntries = Object.entries(emotions).filter(([, v]) => v > 0)
@@ -271,6 +272,11 @@ function AnalysisResult({ result }) {
 
   return (
     <div className="space-y-5 fade-in">
+      {/* Bangla / Banglish metadata badge */}
+      {bangla_meta && (
+        <BanglaMetaBadge meta={bangla_meta} />
+      )}
+
       {/* Category Selector Cards */}
       <CategorySelector
         activeCategory={activeCategory}
@@ -289,6 +295,45 @@ function AnalysisResult({ result }) {
           <PersonalityPanel personality={personality} />
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Bangla / Banglish metadata badge shown above analysis results
+ */
+function BanglaMetaBadge({ meta }) {
+  if (!meta) return null
+  const { script, detected_slang, context_hint } = meta
+
+  const scriptLabels = {
+    bangla: { label: 'বাংলা (Bangla)', emoji: '🇧🇩', color: 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400' },
+    banglish: { label: 'Banglish', emoji: '🔤', color: 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400' },
+  }
+  const scriptInfo = scriptLabels[script]
+  if (!scriptInfo) return null
+
+  return (
+    <div className={cn('rounded-xl border px-4 py-3 text-sm space-y-1.5', scriptInfo.color)}>
+      <div className="flex items-center gap-2 font-semibold">
+        <span>{scriptInfo.emoji}</span>
+        <span>{scriptInfo.label} detected</span>
+      </div>
+      {context_hint && (
+        <p className="text-xs opacity-80 leading-relaxed">{context_hint}</p>
+      )}
+      {detected_slang && detected_slang.length > 0 && (
+        <div className="flex flex-wrap gap-1 pt-0.5">
+          {detected_slang.slice(0, 6).map((slang) => (
+            <span
+              key={slang}
+              className="inline-block rounded-full bg-current/10 border border-current/20 px-2 py-0.5 text-xs font-mono opacity-90"
+            >
+              {slang}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

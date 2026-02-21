@@ -2,6 +2,9 @@ from transformers import pipeline
 import os
 import time
 from requests.exceptions import ReadTimeout, ConnectionError
+from services.bangla_processor import BanglaProcessor
+
+_bangla_proc = BanglaProcessor()
 
 class SentimentAnalyzer:
     def __init__(self):
@@ -38,9 +41,15 @@ class SentimentAnalyzer:
                 'score': 0.0,
                 'scores': {'positive': 0.33, 'neutral': 0.34, 'negative': 0.33}
             }
-        
+
+        # --- Bangla / Banglish: translate to English for the ML model ---
+        model_input = text
+        if language == 'bn' or _bangla_proc.is_bangla_or_banglish(text):
+            translated = _bangla_proc.get_model_input(text)
+            model_input = translated if translated.strip() else text
+
         try:
-            results = self.model(text[:512])[0]
+            results = self.model(model_input[:512])[0]
             scores = {
                 'positive': next((r['score'] for r in results if 'pos' in r['label'].lower()), 0),
                 'neutral': next((r['score'] for r in results if 'neu' in r['label'].lower()), 0),
@@ -52,7 +61,7 @@ class SentimentAnalyzer:
                 'score': scores[label],
                 'scores': scores
             }
-        except Exception as e:
+        except Exception:
             return {
                 'label': 'neutral',
                 'score': 0.0,
