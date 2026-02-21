@@ -50,18 +50,54 @@ const bubbleStyles = `
 @keyframes bubbleInPanel {
   0% {
     opacity: 0;
-    transform: scale(0.5) translateY(20px);
+    transform: scale(0.85) translateY(30px);
+    filter: blur(4px);
   }
-  60% {
+  50% {
     opacity: 1;
-    transform: scale(1.03) translateY(-4px);
+    transform: scale(1.02) translateY(-6px);
+    filter: blur(0px);
   }
-  80% {
+  75% {
     transform: scale(0.98) translateY(2px);
   }
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes floatIn {
+  0% {
+    opacity: 0;
+    transform: translateX(40px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-4px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
   }
 }
 
@@ -73,9 +109,31 @@ const bubbleStyles = `
   animation: bubbleInPanel 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.bubble-animate-delay-1 { animation-delay: 0.08s; opacity: 0; }
-.bubble-animate-delay-2 { animation-delay: 0.16s; opacity: 0; }
-.bubble-animate-delay-3 { animation-delay: 0.24s; opacity: 0; }
+.float-in-panel {
+  animation: floatIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-active {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bubble-animate-delay-1 { animation-delay: 0.1s; opacity: 0; }
+.bubble-animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
+.bubble-animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
 `
 
 // ============================================
@@ -301,23 +359,25 @@ function AnalyzeContent({ toast }) {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr,1.1fr]">
-      {/* ======== LEFT PANEL ======== */}
+    <div className="grid gap-5 lg:grid-cols-[55fr,45fr] items-start">
+      {/* ======== LEFT PANEL — Text Input & Category Cards ======== */}
       <div className="space-y-4">
-        {/* Text Input Card */}
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">✍️</span>
-            <h2 className="text-sm font-semibold text-foreground">Enter Your Text</h2>
+        {/* Text Input Card — glassmorphism */}
+        <div className="glass-card rounded-2xl p-5 shadow-lg shadow-black/5">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/20">
+              <span className="text-base">✍️</span>
+            </div>
+            <h2 className="text-sm font-semibold text-foreground tracking-wide">Enter Your Text</h2>
           </div>
           <form onSubmit={handleSubmit(handleAnalyzeClick)}>
             <FormField error={errors.text?.message}>
               <Textarea
                 placeholder="Type or paste your text here to begin analysis..."
-                className="min-h-[160px] resize-y bg-background/50 border-border/40 text-sm"
+                className="min-h-[180px] resize-y bg-background/30 border-white/[0.06] text-sm rounded-xl focus:border-emerald-500/40 transition-colors"
                 {...register('text')}
               />
-              <div className="flex justify-between text-[11px] text-muted-foreground mt-1.5">
+              <div className="flex justify-between text-[11px] text-muted-foreground mt-2">
                 <span>{charCount} / 5000</span>
                 <span>Min: 10 chars</span>
               </div>
@@ -345,8 +405,8 @@ function AnalyzeContent({ toast }) {
               onClick={handleRewriteClick}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-semibold transition-all duration-300',
-                'border border-border/60 bg-card text-foreground',
-                'hover:bg-accent/40 hover:border-border hover:scale-[1.02] active:scale-[0.98]'
+                'glass-card text-foreground',
+                'hover:bg-white/[0.06] hover:scale-[1.02] active:scale-[0.98]'
               )}
             >
               <PenLine className="h-4 w-4" />
@@ -355,9 +415,12 @@ function AnalyzeContent({ toast }) {
           </div>
         </div>
 
-        {/* Analysis Category Cards — shown after Analyze Text is clicked */}
+        {/* Analysis Category Cards — shown INSIDE left panel after Analyze */}
         {showCards && (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-medium px-1">
+              📊 Analysis Categories
+            </p>
             {ANALYSIS_CATEGORIES.map((cat, idx) => {
               const isAnalyzed = analyzedCategories.has(cat.id)
               const isActive = activeCategory === cat.id
@@ -370,44 +433,51 @@ function AnalyzeContent({ toast }) {
                   onClick={() => onCategoryClick(cat.id)}
                   disabled={isLoading}
                   className={cn(
-                    'w-full rounded-xl border p-4 text-left transition-all duration-300 group relative overflow-hidden',
+                    'w-full rounded-xl p-3.5 text-left transition-all duration-300 group relative overflow-hidden',
                     'bubble-animate',
                     idx === 0 && 'bubble-animate-delay-1',
                     idx === 1 && 'bubble-animate-delay-2',
                     idx === 2 && 'bubble-animate-delay-3',
                     isActive
-                      ? cn('border-2', cat.borderColor, 'bg-card shadow-lg', cat.glowColor)
-                      : 'border-border/50 bg-card hover:border-border hover:bg-accent/30',
+                      ? cn('glass-card-active border-2', cat.borderColor, 'shadow-lg', cat.glowColor)
+                      : 'glass-card hover:bg-white/[0.05]',
                     isLoading && 'opacity-60 pointer-events-none'
                   )}
                 >
+                  {/* Active glow bar */}
+                  {isActive && (
+                    <div className={cn(
+                      'absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-gradient-to-b',
+                      cat.color
+                    )} />
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={cn(
-                        'h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br',
+                        'h-9 w-9 rounded-lg flex items-center justify-center bg-gradient-to-br shadow-md',
                         cat.color,
-                        'shadow-lg',
                         cat.glowColor
                       )}>
-                        <Icon className="h-5 w-5 text-white" />
+                        <Icon className="h-4 w-4 text-white" />
                       </div>
                       <div>
                         <h3 className={cn(
-                          'text-sm font-semibold transition-colors',
+                          'text-[13px] font-semibold transition-colors',
                           isActive ? cat.textColor : 'text-foreground'
                         )}>
                           {cat.label}
                         </h3>
-                        <p className="text-[11px] text-muted-foreground">{cat.description}</p>
+                        <p className="text-[10px] text-muted-foreground">{cat.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {isAnalyzed ? (
                         <div className={cn(
-                          'h-7 w-7 rounded-full flex items-center justify-center',
-                          isActive ? cn('bg-gradient-to-br', cat.color) : 'bg-emerald-500/20'
+                          'h-6 w-6 rounded-full flex items-center justify-center transition-all',
+                          isActive ? cn('bg-gradient-to-br', cat.color, 'shadow-md', cat.glowColor) : 'bg-emerald-500/15 border border-emerald-500/30'
                         )}>
-                          <Check className={cn('h-3.5 w-3.5', isActive ? 'text-white' : 'text-emerald-400')} />
+                          <Check className={cn('h-3 w-3', isActive ? 'text-white' : 'text-emerald-400')} />
                         </div>
                       ) : (
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -417,8 +487,9 @@ function AnalyzeContent({ toast }) {
 
                   {/* Ready indicator */}
                   {isAnalyzed && !isActive && (
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <span className="text-[10px] font-medium text-emerald-400">⚡ Click to display results</span>
+                    <div className="mt-1.5 flex items-center gap-1.5 pl-12">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-medium text-emerald-400/80">Click to view results →</span>
                     </div>
                   )}
                 </button>
@@ -428,20 +499,35 @@ function AnalyzeContent({ toast }) {
         )}
       </div>
 
-      {/* ======== RIGHT PANEL — Analysis Report ======== */}
-      <div className="rounded-xl border border-border/60 bg-card p-5 min-h-[500px] lg:sticky lg:top-5 lg:self-start">
-        {isLoading ? (
-          <AnalysisLoadingState />
-        ) : activeCategory && result ? (
-          <div key={panelAnimKey} className="bubble-animate-panel">
-            <CategoryResultView
-              category={activeCategory}
-              result={result}
-            />
+      {/* ======== RIGHT PANEL — Analysis Report (always visible) ======== */}
+      <div className={cn(
+        'glass-card rounded-2xl p-5 lg:sticky lg:top-5 lg:self-start shadow-lg shadow-black/5',
+        'min-h-[540px] flex flex-col',
+        !activeCategory && !isLoading && 'pulse-glow'
+      )}>
+        {/* Right Panel Header */}
+        <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-white/[0.06]">
+          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-indigo-500/20">
+            <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
           </div>
-        ) : (
-          <InitialRightPanelState hasResult={!!result} />
-        )}
+          <h2 className="text-sm font-semibold text-foreground/80 tracking-wide">Analysis Report</h2>
+        </div>
+
+        {/* Right Panel Content */}
+        <div className="flex-1 flex flex-col">
+          {isLoading ? (
+            <AnalysisLoadingState />
+          ) : activeCategory && result ? (
+            <div key={panelAnimKey} className="float-in-panel">
+              <CategoryResultView
+                category={activeCategory}
+                result={result}
+              />
+            </div>
+          ) : (
+            <InitialRightPanelState hasResult={!!result} />
+          )}
+        </div>
       </div>
     </div>
   )
