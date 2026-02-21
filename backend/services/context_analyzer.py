@@ -579,74 +579,72 @@ class ContextAnalyzer:
         """
         Generate optional tone-based rewrite suggestions.
 
-        Rules:
-        - If original is Banglish  → build the suggestion in Bangla first
-          (normalize), then transliterate the whole suggestion back to
-          Banglish so the output stays in the same script as the input.
-        - If original is Bangla / Mixed → keep suggestions in Bangla Unicode.
-        - English input → no suggestions generated here.
+        Script consistency rules:
+        - Banglish input  → suggestion uses Banglish prefix + original Banglish body
+        - Bangla / Mixed  → suggestion uses Bangla Unicode prefix + normalised Bangla body
+        - English input   → no suggestions generated here
 
         Returns up to 2 suggestions.
         """
         suggestions: list[str] = []
 
-        # Only generate suggestions for Bangla-family input
         if proc.script == 'english':
             return suggestions
 
         is_banglish = proc.script == 'banglish'
 
-        # The normalised Bangla form used as the body of each suggestion.
-        # For Banglish input proc.bangla_text holds the transliterated Bangla.
-        bangla_body = proc.bangla_text or ''
-        if not bangla_body:
+        # ------------------------------------------------------------------
+        # Pick the body text in the correct script:
+        #   • Banglish → use the normalised Banglish form (proc.normalised_text)
+        #     so the body stays in Roman-script Bangla exactly as the user typed.
+        #   • Bangla / Mixed → use the transliterated Bangla Unicode form.
+        # ------------------------------------------------------------------
+        if is_banglish:
+            body = proc.normalised_text or proc.original
+        else:
+            body = proc.bangla_text or proc.normalised_text or proc.original
+
+        if not body or not body.strip():
             return suggestions
 
         # ------------------------------------------------------------------
-        # Build a reverse map: Bangla Unicode → canonical Banglish spelling.
-        # We use BANGLISH_TO_BANGLA (Banglish → Bangla) and invert it.
-        # Longest Bangla phrase is matched first during replacement.
+        # Bilingual prefix table:
+        #   Each entry is (banglish_prefix, bangla_prefix)
+        #   _prefix() selects the right one based on is_banglish.
         # ------------------------------------------------------------------
-        from services.bangla_processor import BANGLISH_TO_BANGLA
+        PREFIXES: dict[str, tuple[str, str]] = {
+            # key: (banglish, bangla_unicode)
+            'friendly_pos_1': ('Shotti darun! ',       'সত্যিই দারুণ! '),
+            'friendly_pos_2': ('Bah! ',                'বাহ! '),
+            'sarcastic':      ('Ami shotti mone kori — ', 'আমি সত্যিই মনে করি — '),
+            'humorous':       ('😄 ',                   '😄 '),
+            'serious_1':      ('Ami bujhte parchhi. ', 'আমি বুঝতে পারছি। '),
+            'serious_2':      ('Eta niye katha bolte pari — ', 'এটা নিয়ে কথা বলতে পারি — '),
+            'family':         ('Adorer shathe — ',     'আদরের সাথে — '),
+            'generic_pos':    ('Shotti valo laglo! ',  'সত্যিই ভালো লাগলো! '),
+        }
 
-        _bangla_to_banglish: dict[str, str] = {}
-        for bl_key, bn_val in BANGLISH_TO_BANGLA.items():
-            # Keep only the first (most canonical) Banglish form per Bangla value
-            if bn_val not in _bangla_to_banglish:
-                _bangla_to_banglish[bn_val] = bl_key
-
-        def _to_banglish(text: str) -> str:
-            """Replace Bangla Unicode tokens with their Banglish equivalents."""
-            result = text
-            for bn_val in sorted(_bangla_to_banglish, key=len, reverse=True):
-                if bn_val in result:
-                    result = result.replace(bn_val, _bangla_to_banglish[bn_val])
-            return result
-
-        def _make(bangla_suggestion: str) -> str:
-            """Return suggestion in the correct script (Banglish or Bangla)."""
-            if is_banglish:
-                return _to_banglish(bangla_suggestion)
-            return bangla_suggestion
+        def _prefix(key: str) -> str:
+            bl, bn = PREFIXES[key]
+            return bl if is_banglish else bn
 
         # ------------------------------------------------------------------
-        # Tone-aware Bangla templates → converted to target script via _make()
+        # Tone-aware templates
         # ------------------------------------------------------------------
         if detected_tone == 'friendly' and sentiment_score > 0.3:
-            suggestions.append(_make(f"সত্যিই দারুণ! {bangla_body}"))
-            suggestions.append(_make(f"বাহ! {bangla_body}"))
+            suggestions.append(f"{_prefix('friendly_pos_1')}{body}")
+            suggestions.append(f"{_prefix('friendly_pos_2')}{body}")
         elif detected_tone == 'sarcastic':
-            suggestions.append(_make(f"আমি সত্যিই মনে করি — {bangla_body}"))
+            suggestions.append(f"{_prefix('sarcastic')}{body}")
         elif detected_tone == 'humorous':
-            suggestions.append(_make(f"😄 {bangla_body}"))
+            suggestions.append(f"{_prefix('humorous')}{body}")
         elif detected_tone == 'serious' and sentiment_score < -0.2:
-            suggestions.append(_make(f"আমি বুঝতে পারছি। {bangla_body}"))
-            suggestions.append(_make(f"এটা নিয়ে আমরা কথা বলতে পারি — {bangla_body}"))
+            suggestions.append(f"{_prefix('serious_1')}{body}")
+            suggestions.append(f"{_prefix('serious_2')}{body}")
         elif detected_tone == 'family':
-            suggestions.append(_make(f"আদরের সাথে — {bangla_body}"))
+            suggestions.append(f"{_prefix('family')}{body}")
         elif sentiment_score > 0.3:
-            # Generic positive fallback
-            suggestions.append(_make(f"সত্যিই ভালো লাগলো! {bangla_body}"))
+            suggestions.append(f"{_prefix('generic_pos')}{body}")
 
         return suggestions[:2]  # Max 2
 
