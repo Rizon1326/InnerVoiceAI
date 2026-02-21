@@ -578,34 +578,75 @@ class ContextAnalyzer:
     ) -> list[str]:
         """
         Generate optional tone-based rewrite suggestions.
-        Returns up to 2 suggestions. Uses rule-based templates for
-        fast response; Gemini-based rewriting is on the /rewrite endpoint.
+
+        Rules:
+        - If original is Banglish  → build the suggestion in Bangla first
+          (normalize), then transliterate the whole suggestion back to
+          Banglish so the output stays in the same script as the input.
+        - If original is Bangla / Mixed → keep suggestions in Bangla Unicode.
+        - English input → no suggestions generated here.
+
+        Returns up to 2 suggestions.
         """
         suggestions: list[str] = []
 
-        bangla_text = proc.bangla_text if proc.script in ('bangla', 'banglish', 'mixed') else ''
-
-        # Only generate suggestions when there's meaningful Bangla/Banglish content
-        if not bangla_text or proc.script == 'english':
+        # Only generate suggestions for Bangla-family input
+        if proc.script == 'english':
             return suggestions
 
-        # Tone-aware templates
+        is_banglish = proc.script == 'banglish'
+
+        # The normalised Bangla form used as the body of each suggestion.
+        # For Banglish input proc.bangla_text holds the transliterated Bangla.
+        bangla_body = proc.bangla_text or ''
+        if not bangla_body:
+            return suggestions
+
+        # ------------------------------------------------------------------
+        # Build a reverse map: Bangla Unicode → canonical Banglish spelling.
+        # We use BANGLISH_TO_BANGLA (Banglish → Bangla) and invert it.
+        # Longest Bangla phrase is matched first during replacement.
+        # ------------------------------------------------------------------
+        from services.bangla_processor import BANGLISH_TO_BANGLA
+
+        _bangla_to_banglish: dict[str, str] = {}
+        for bl_key, bn_val in BANGLISH_TO_BANGLA.items():
+            # Keep only the first (most canonical) Banglish form per Bangla value
+            if bn_val not in _bangla_to_banglish:
+                _bangla_to_banglish[bn_val] = bl_key
+
+        def _to_banglish(text: str) -> str:
+            """Replace Bangla Unicode tokens with their Banglish equivalents."""
+            result = text
+            for bn_val in sorted(_bangla_to_banglish, key=len, reverse=True):
+                if bn_val in result:
+                    result = result.replace(bn_val, _bangla_to_banglish[bn_val])
+            return result
+
+        def _make(bangla_suggestion: str) -> str:
+            """Return suggestion in the correct script (Banglish or Bangla)."""
+            if is_banglish:
+                return _to_banglish(bangla_suggestion)
+            return bangla_suggestion
+
+        # ------------------------------------------------------------------
+        # Tone-aware Bangla templates → converted to target script via _make()
+        # ------------------------------------------------------------------
         if detected_tone == 'friendly' and sentiment_score > 0.3:
-            # Friendly + positive → enthusiastic rewrites
-            if bangla_text:
-                suggestions.append(f"সত্যিই দারুণ! {bangla_text}")
-            suggestions.append(f"Wow! {proc.normalised_text or original_text}")
+            suggestions.append(_make(f"সত্যিই দারুণ! {bangla_body}"))
+            suggestions.append(_make(f"বাহ! {bangla_body}"))
         elif detected_tone == 'sarcastic':
-            # Offer a sincere alternative
-            suggestions.append(f"আমি সত্যিই মনে করি — {bangla_text}")
+            suggestions.append(_make(f"আমি সত্যিই মনে করি — {bangla_body}"))
         elif detected_tone == 'humorous':
-            suggestions.append(f"😄 {bangla_text}")
+            suggestions.append(_make(f"😄 {bangla_body}"))
         elif detected_tone == 'serious' and sentiment_score < -0.2:
-            # Serious + negative → more constructive
-            suggestions.append(f"আমি বুঝতে পারছি। {bangla_text}")
-            suggestions.append(f"এটা নিয়ে আমরা কথা বলতে পারি — {bangla_text}")
+            suggestions.append(_make(f"আমি বুঝতে পারছি। {bangla_body}"))
+            suggestions.append(_make(f"এটা নিয়ে আমরা কথা বলতে পারি — {bangla_body}"))
         elif detected_tone == 'family':
-            suggestions.append(f"আদরের সাথে — {bangla_text}")
+            suggestions.append(_make(f"আদরের সাথে — {bangla_body}"))
+        elif sentiment_score > 0.3:
+            # Generic positive fallback
+            suggestions.append(_make(f"সত্যিই ভালো লাগলো! {bangla_body}"))
 
         return suggestions[:2]  # Max 2
 
