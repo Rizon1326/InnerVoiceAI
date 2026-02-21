@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { authService, getStoredUser } from '@/services'
+import { authService, getStoredUser, setStoredUser } from '@/services'
 import { LOADING_STATES } from '@/lib/constants'
 
 // Auth Context
@@ -22,7 +22,15 @@ export function AuthProvider({ children }) {
           // Verify token is still valid by fetching profile
           try {
             const profile = await authService.getProfile()
-            setUser(profile.user || storedUser)
+            const userData = profile.data || profile.user || storedUser
+            const user = {
+              id: userData.id,
+              username: userData.username,
+              email: userData.email,
+              avatar_url: userData.avatar_url || null,
+            }
+            await setStoredUser(user)
+            setUser(user)
             setStatus(LOADING_STATES.SUCCESS)
           } catch {
             // Token invalid, clear storage
@@ -92,8 +100,16 @@ export function AuthProvider({ children }) {
   const refreshUser = React.useCallback(async () => {
     try {
       const profile = await authService.getProfile()
-      setUser(profile.user)
-      return profile.user
+      const userData = profile.data || profile.user
+      const user = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        avatar_url: userData.avatar_url || null,
+      }
+      await setStoredUser(user)
+      setUser(user)
+      return user
     } catch (err) {
       console.error('Refresh user error:', err)
       throw err

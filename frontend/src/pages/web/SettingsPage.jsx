@@ -30,6 +30,9 @@ import {
   Key,
   Trash2,
   Download,
+  Upload,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 
 /**
@@ -104,7 +107,10 @@ export default function SettingsPage() {
 function ProfileSection() {
   const { user, refreshUser } = useAuth()
   const toast = useToast()
+  const fileInputRef = React.useRef(null)
   const [isLoading, setIsLoading] = React.useState(false)
+  const [isUploading, setIsUploading] = React.useState(false)
+  const [avatarUrl, setAvatarUrl] = React.useState(user?.avatar_url || null)
   const [formData, setFormData] = React.useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -114,13 +120,68 @@ function ProfileSection() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Client-side validation
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File Too Large', 'Max file size is 2MB.')
+      return
+    }
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      toast.error('Invalid File', 'Only JPG, PNG, GIF, and WebP are allowed.')
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      const res = await authService.uploadAvatar(file)
+      if (res.success) {
+        setAvatarUrl(res.data.avatar_url)
+        await refreshUser()
+        toast.success('Avatar Updated', 'Your profile picture has been changed.')
+      } else {
+        toast.error('Upload Failed', res.error || 'Something went wrong.')
+      }
+    } catch (error) {
+      toast.error('Upload Failed', error.message)
+    } finally {
+      setIsUploading(false)
+      // Reset file input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!formData.username.trim()) {
+      toast.error('Validation Error', 'Username cannot be empty.')
+      return
+    }
+    if (!formData.email.trim()) {
+      toast.error('Validation Error', 'Email cannot be empty.')
+      return
+    }
+
     setIsLoading(true)
     try {
-      // API call would go here
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success('Profile Updated', 'Your profile has been saved.')
+      const res = await authService.updateProfile({
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+      })
+      if (res.success) {
+        await refreshUser()
+        toast.success('Profile Updated', 'Your profile has been saved.')
+      } else {
+        toast.error('Update Failed', res.error || 'Something went wrong.')
+      }
     } catch (error) {
       toast.error('Update Failed', error.message)
     } finally {
@@ -138,13 +199,34 @@ function ProfileSection() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <Avatar name={user?.username} size="xl" />
+            <div className="relative">
+              <Avatar src={avatarUrl} name={user?.username} size="xl" />
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                </div>
+              )}
+            </div>
             <div>
-              <Button type="button" variant="outline" size="sm">
-                Change Avatar
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAvatarClick}
+                disabled={isUploading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isUploading ? 'Uploading…' : 'Change Avatar'}
               </Button>
               <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG or GIF. Max size 2MB.
+                JPG, PNG, GIF or WebP. Max size 2MB.
               </p>
             </div>
           </div>
@@ -464,14 +546,60 @@ function SecuritySection() {
  * Data & Privacy settings section
  */
 function DataSection() {
+  const { logout } = useAuth()
   const toast = useToast()
+  const [isExporting, setIsExporting] = React.useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
+  const [deletePassword, setDeletePassword] = React.useState('')
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
-  const handleExportData = () => {
-    toast.info('Export Started', 'Your data export is being prepared...')
-    // Simulate export
-    setTimeout(() => {
-      toast.success('Export Ready', 'Your data has been exported.')
-    }, 2000)
+  const handleExportData = async () => {
+    setIsExporting(true)
+    try {
+      const res = await authService.exportData()
+      if (res.success) {
+        // Trigger JSON file download
+        const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `innervoice-data-${new Date().toISOString().slice(0, 10)}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        toast.success('Export Complete', 'Your data has been downloaded.')
+      } else {
+        toast.error('Export Failed', res.error || 'Something went wrong.')
+      }
+    } catch (error) {
+      toast.error('Export Failed', error.message)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      toast.error('Password Required', 'Enter your password to confirm deletion.')
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const res = await authService.deleteAccount(deletePassword)
+      if (res.success) {
+        toast.success('Account Deleted', 'Your account has been permanently deleted.')
+        // Redirect via logout (storage already cleared by authService)
+        await logout()
+      } else {
+        toast.error('Deletion Failed', res.error || 'Something went wrong.')
+      }
+    } catch (error) {
+      toast.error('Deletion Failed', error.message)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -489,12 +617,24 @@ function DataSection() {
               <div>
                 <p className="font-medium text-sm">Export Your Data</p>
                 <p className="text-xs text-muted-foreground">
-                  Download all your analyses and account data
+                  Download all your analyses and account data as JSON
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExportData}>
-              Export
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportData}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Exporting…
+                </>
+              ) : (
+                'Export'
+              )}
             </Button>
           </div>
         </div>
@@ -511,10 +651,67 @@ function DataSection() {
                 </p>
               </div>
             </div>
-            <Button variant="destructive" size="sm">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
               Delete
             </Button>
           </div>
+
+          {showDeleteConfirm && (
+            <div className="mt-4 p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-destructive">
+                    This action is irreversible
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All your posts, analyses, rewrites, progress data, and account will be
+                    permanently deleted. Enter your password to confirm.
+                  </p>
+                </div>
+              </div>
+              <FormField label="Confirm Password">
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Enter your password"
+                />
+              </FormField>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting…
+                    </>
+                  ) : (
+                    'Delete My Account'
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                    setDeletePassword('')
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

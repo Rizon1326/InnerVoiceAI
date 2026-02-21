@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, Analysis, EmotionalProgress, ProjectMetrics
+from .models import Post, Analysis, EmotionalProgress, ProjectMetrics, UserProfile
 from django.contrib.auth.models import User
 
 class AnalysisSerializer(serializers.ModelSerializer):
@@ -74,13 +74,42 @@ class ProjectMetricsSerializer(serializers.ModelSerializer):
         ]
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = ['avatar_url']
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
+
+
 class UserSerializer(serializers.ModelSerializer):
     posts_count = serializers.SerializerMethodField()
     metrics = ProjectMetricsSerializer(read_only=True)
+    avatar_url = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'posts_count', 'metrics', 'date_joined']
+        fields = ['id', 'username', 'email', 'posts_count', 'metrics', 'avatar_url', 'date_joined']
     
     def get_posts_count(self, obj):
         return obj.posts.count()
+
+    def get_avatar_url(self, obj):
+        try:
+            profile = obj.profile
+            if profile.avatar:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(profile.avatar.url)
+                return profile.avatar.url
+        except UserProfile.DoesNotExist:
+            pass
+        return None

@@ -23,6 +23,9 @@ urlpatterns = [
     # Metrics and evaluation (require authentication)
     path('metrics/', auth_views.get_user_metrics),
     path('profile/', auth_views.get_user_profile),
+    path('profile/avatar/', auth_views.upload_avatar),
+    path('profile/export/', auth_views.export_user_data),
+    path('profile/delete/', auth_views.delete_account),
     
     # Public statistics
     path('statistics/', auth_views.get_project_statistics),
