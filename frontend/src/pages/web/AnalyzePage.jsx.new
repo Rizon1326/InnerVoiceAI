@@ -53,7 +53,7 @@ const ANALYSIS_CATEGORIES = [
     id: 'personality',
     label: 'Personality Insights',
     description: 'Big Five · OCEAN personality model',
-    icon: BrainCircuit,
+    icon: BrainCiSentiment Analysis,Personality analysis and Emotion analysis card should be under the text analysis box. there must have a right pannel when rcuit,
     emoji: '🧠',
     color: 'from-pink-500 to-rose-500',
     borderColor: 'border-pink-500/40',
