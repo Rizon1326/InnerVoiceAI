@@ -106,36 +106,40 @@ npm run build:ext
 
 ---
 
-## 🌐 Deploy Backend (The One Big Remaining Task)
+## 🌐 Backend Setup (Localhost — For Course Assignment / Demo)
 
-Your extension needs a **public HTTPS URL** for the API (not localhost).
+> **You do NOT need to deploy to Railway, Render, or any cloud service.**
+> Since this is a course assignment, `localhost` works perfectly fine.
 
-### Recommended: Railway (Free & Easy)
+### How it works
 
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
+1. You run Django backend on `http://localhost:8000`
+2. The extension calls `http://localhost:8000/api/...`
+3. Everything runs on your machine — no cloud needed
 
-# Login and deploy
-cd backend
-railway login
-railway init
-railway up
-```
+### What you need
 
-### Other free options:
-| Platform | Cost | Difficulty |
-|---|---|---|
-| **Railway** | Free tier | ⭐ Easiest |
-| **Render** | Free tier | ⭐ Easy |
-| **DigitalOcean** | $5/mo | ⭐⭐ Medium |
+- `frontend/.env.development` with:
 
-### Backend checklist for production:
-- Set `DEBUG=False` in `settings.py`
-- Set `ALLOWED_HOSTS` to your deployed domain
-- Add `gunicorn` to `requirements.txt`
-- Set Gemini API key as environment variable on server
-- Add CORS support for `chrome-extension://` origins
+  ```
+  VITE_API_URL=http://localhost:8000/api
+  ```
+
+- Django CORS must allow `chrome-extension://` origins (one small change in `settings.py`)
+- **Before demoing:** always start the backend first:
+
+  ```bash
+  cd backend
+  python manage.py runserver
+  ```
+
+### What you can SKIP
+
+- ❌ Railway / Render / any cloud deployment
+- ❌ PostgreSQL (keep using SQLite — it's fine)
+- ❌ gunicorn / Procfile
+- ❌ `DEBUG=False` / production settings
+- ❌ Chrome Web Store submission (use "Load Unpacked" instead — free, instant)
 
 ---
 
@@ -147,7 +151,6 @@ frontend/
 ├── vite.config.js                    ← UNCHANGED (web build)
 ├── vite.config.ext.js                ← NEW (extension build)
 ├── .env.development                  ← NEW (local API URL)
-├── .env.production                   ← NEW (production API URL, gitignored)
 ├── public/icons/
 │   ├── icon16.png                    ← NEW
 │   ├── icon32.png                    ← NEW
@@ -167,28 +170,28 @@ frontend/
 
 ---
 
-## 🏪 Chrome Web Store Submission (Final Step)
+## 🏪 Loading the Extension (For Course Demo)
 
-1. Create developer account at [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole) ($5 one-time fee)
-2. Prepare screenshots (1280×800), short description (132 chars)
-3. Zip the `dist-extension/` folder → Upload
-4. Write a simple privacy policy
-5. Justify permissions (explain why you need `contextMenus`, `storage`, etc.)
-6. Submit for review (1-7 business days)
+> **No Chrome Web Store needed.** Use "Load Unpacked" — it's free and instant.
+
+1. Build: `npm run build:ext` in the `frontend/` folder
+2. Open Chrome → go to `chrome://extensions`
+3. Turn ON **"Developer mode"** (top-right toggle)
+4. Click **"Load unpacked"**
+5. Select the `frontend/dist-extension` folder
+6. ✅ Done! The extension icon appears in your toolbar
 
 ---
 
 ## ⏱️ Time Estimate
 
 | Step | Time |
-|---|---|
+| --- | --- |
 | Icons | 5 mins |
 | Create 5 files | 30 mins (Copilot can generate them) |
-| Install & Build | 10 mins |
+| Install and Build | 10 mins |
 | Test locally | 30 mins |
-| Deploy backend | 30-60 mins |
-| Chrome Store submission | 1-2 hours |
-| **Total** | **~3-5 hours** |
+| **Total** | **~1-2 hours** |
 
 ---
 
@@ -208,9 +211,7 @@ frontend/
 - [ ] History tab shows last 20 items
 - [ ] Right-click context menu works
 - [ ] Theme toggle works
-- [ ] Backend deployed to public HTTPS
-- [ ] `.env.production` points to deployed API
-- [ ] Submitted to Chrome Web Store
+- [ ] Backend running on `localhost:8000` during demo
 
 ---
 
