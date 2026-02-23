@@ -143,6 +143,7 @@ npm run build:ext
 
 ---
 
+
 ## 📁 Final File Structure (What Changes)
 
 ```
