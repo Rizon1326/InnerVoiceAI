@@ -209,7 +209,8 @@ export function HighlightedText({
     }
   }, [activeWord])
 
-  const hasHighlights = highlightPatterns.length > 0
+  const highlightedCount = segments.filter(s => s.isHighlighted).length
+  const hasHighlights = highlightedCount > 0
 
   return (
     <div className={cn('relative', className)} ref={containerRef}>
@@ -305,17 +306,9 @@ export function HighlightedText({
 
       {/* Legend */}
       {hasHighlights && (
-        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-900/30 border-b-2 border-red-400" />
-            <span>Click highlighted words for suggestions</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex w-4 h-4 rounded-full bg-red-500/20 items-center justify-center text-[10px]">
-              {highlightPatterns.length}
-            </span>
-            <span>words flagged</span>
-          </div>
+        <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-900/30 border-b-2 border-red-400" />
+          <span>Click highlighted words for suggestions</span>
         </div>
       )}
     </div>
