@@ -68,9 +68,22 @@ export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAn
       {/* Rewritten Text */}
       <div className="relative">
         <div className="p-4 rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {rewrittenText}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap flex-1">
+              {rewrittenText}
+            </p>
+            <button
+              onClick={handleCopy}
+              className="shrink-0 ml-2 p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              title="Copy rewritten text"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Gradient accent */}

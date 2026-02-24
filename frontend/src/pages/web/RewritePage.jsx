@@ -19,7 +19,7 @@ import {
   RewriteResult,
   RewriteResultSkeleton,
 } from '@/components/rewrite'
-import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, MessageSquarePlus } from 'lucide-react'
+import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, MessageSquarePlus, Copy, Check } from 'lucide-react'
 
 /**
  * Dedicated Rewrite Page
@@ -46,15 +46,19 @@ export default function RewritePage() {
 
   // Local state for text editing
   const [editedText, setEditedText] = React.useState(originalText)
-  const [isEditing, setIsEditing] = React.useState(false)
+  // Start in editing mode when there is no pre-loaded text (direct navigation to Rewrite)
+  const [isEditing, setIsEditing] = React.useState(!originalText)
   const [rewriteInstruction, setRewriteInstruction] = React.useState('')
   // eslint-disable-next-line no-unused-vars
   const [replacementHistory, setReplacementHistory] = React.useState([])
+  const [copiedOriginal, setCopiedOriginal] = React.useState(false)
 
   // Sync edited text with original
   React.useEffect(() => {
     setEditedText(originalText)
     setReplacementHistory([])
+    // If the original text gets cleared externally, return to edit mode
+    if (!originalText) setIsEditing(true)
   }, [originalText])
 
   // Extract emotions for suggestions
@@ -63,6 +67,16 @@ export default function RewritePage() {
     const analysis = analysisResult.analysis || analysisResult
     return analysis.emotions || {}
   }, [analysisResult])
+
+  /**
+   * Handle copy of original/edited text
+   */
+  const handleCopyOriginal = () => {
+    navigator.clipboard.writeText(editedText)
+    setCopiedOriginal(true)
+    setTimeout(() => setCopiedOriginal(false), 2000)
+    toast.success('Copied!', 'Original text copied to clipboard.')
+  }
 
   /**
    * Handle rewrite request
@@ -166,7 +180,10 @@ export default function RewritePage() {
    */
   const saveEditedText = () => {
     setOriginalText(editedText)
-    setIsEditing(false)
+    // Only leave editing mode if there is analysis data to show the highlighted view
+    if (analysisResult) {
+      setIsEditing(false)
+    }
     clearRewrite()
   }
 
@@ -220,11 +237,34 @@ export default function RewritePage() {
                       : 'Enter or paste the text you want to rewrite'}
                   </CardDescription>
                 </div>
-                {hasText && !isEditing && (
-                  <Button variant="ghost" size="sm" onClick={toggleEditMode}>
-                    Edit
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {hasText && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyOriginal}
+                      className="gap-1.5"
+                      title="Copy original text"
+                    >
+                      {copiedOriginal ? (
+                        <>
+                          <Check className="h-4 w-4 text-green-500" />
+                          <span className="text-xs text-green-500">Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          <span className="text-xs">Copy</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {hasText && !isEditing && (
+                    <Button variant="ghost" size="sm" onClick={toggleEditMode}>
+                      Edit
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
