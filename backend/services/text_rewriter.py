@@ -29,6 +29,10 @@ class TextRewriter:
         'more_professional': {
             'instruction': 'Polish the text for business or formal contexts. Use professional vocabulary, proper structure, and formal tone.',
             'focus': 'professional and formal tone'
+        },
+        'custom': {
+            'instruction': 'Rewrite the text exactly as described by the user custom instruction below. Do not apply any other tone or style changes.',
+            'focus': 'user-defined custom instruction'
         }
     }
 
@@ -223,7 +227,7 @@ class TextRewriter:
         detected.sort(key=lambda x: x['start'])
         return detected
     
-    def rewrite(self, text, analysis_data, language='en', goal='more_positive'):
+    def rewrite(self, text, analysis_data, language='en', goal='more_positive', instruction=''):
         """Rewrite text based on the specified improvement goal"""
         
         # Detect negative words first
@@ -238,13 +242,21 @@ class TextRewriter:
             
             # Get goal-specific instructions
             goal_info = self.GOAL_INSTRUCTIONS.get(goal, self.GOAL_INSTRUCTIONS['more_positive'])
-            
+
+            # When a custom instruction is given, it is the SOLE directive.
+            # Do NOT mix it with a conflicting preset goal instruction.
+            if instruction:
+                goal_directive = f"USER CUSTOM INSTRUCTION (follow this exactly, ignore any preset goal bias): {instruction}"
+                focus_line = instruction
+            else:
+                goal_directive = f"GOAL: {goal_info['instruction']}\nFOCUS: {goal_info['focus']}"
+                focus_line = goal_info['focus']
+
             prompt = f"""
-            You are an expert text rewriter. Rewrite this {language} text with the following specific goal:
-            
-            GOAL: {goal_info['instruction']}
-            FOCUS: {goal_info['focus']}
-            
+            You are an expert text rewriter. Rewrite the text strictly according to the directive below.
+
+            {goal_directive}
+
             Original text: "{text}"
             
             Current analysis:
@@ -305,7 +317,7 @@ class TextRewriter:
                 'highlighted_words': all_highlighted,
                 'improvements': result.get('improvements', []),
                 'changes_summary': result.get('changes_summary', ''),
-                'goal_applied': goal,
+                'goal_applied': instruction if instruction else goal,
                 'success': True
             }
             

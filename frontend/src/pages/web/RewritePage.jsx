@@ -19,7 +19,7 @@ import {
   RewriteResult,
   RewriteResultSkeleton,
 } from '@/components/rewrite'
-import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles } from 'lucide-react'
+import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, MessageSquarePlus } from 'lucide-react'
 
 /**
  * Dedicated Rewrite Page
@@ -47,6 +47,7 @@ export default function RewritePage() {
   // Local state for text editing
   const [editedText, setEditedText] = React.useState(originalText)
   const [isEditing, setIsEditing] = React.useState(false)
+  const [rewriteInstruction, setRewriteInstruction] = React.useState('')
   // eslint-disable-next-line no-unused-vars
   const [replacementHistory, setReplacementHistory] = React.useState([])
 
@@ -80,7 +81,8 @@ export default function RewritePage() {
       const response = await analysisService.rewriteText({
         text: editedText,
         goal: goalId,
-        style: goalId, // Backend may use style or goal
+        style: goalId,
+        instruction: rewriteInstruction.trim() || undefined,
       })
 
       // Extract data from response
@@ -93,6 +95,20 @@ export default function RewritePage() {
     } finally {
       setIsRewriting(false)
     }
+  }
+
+  /**
+   * Handle rewrite triggered directly from the instruction panel
+   * Uses the currently selected goal or falls back to 'more_positive'
+   */
+  const handleRewriteWithInstruction = () => {
+    if (!rewriteInstruction.trim()) {
+      toast.error('No Instruction', 'Please type an instruction first.')
+      return
+    }
+    // Always use 'custom' goal so the preset goal instructions
+    // never conflict with or override the user's custom instruction
+    handleRewrite('custom')
   }
 
   /**
@@ -246,6 +262,72 @@ export default function RewritePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Rewrite Instruction Panel */}
+          {hasText && (
+            <Card className="border-dashed border-blue-400/40 bg-blue-500/5 dark:bg-blue-900/10">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500">
+                    <MessageSquarePlus className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Custom Rewrite Instruction</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Describe how you want to transform the text. Works in English or Bangla/Banglish.
+                      </p>
+                    </div>
+                    <Textarea
+                      value={rewriteInstruction}
+                      onChange={(e) => setRewriteInstruction(e.target.value)}
+                      placeholder={`e.g. "increase sadness"  •  "make it more formal"  •  "sadness komao"  •  "Bangla te lekho"`}
+                      className="min-h-[72px] resize-none text-sm bg-background/60 border-blue-300/30 focus:border-blue-400 placeholder:text-muted-foreground/50"
+                      maxLength={300}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                          handleRewriteWithInstruction()
+                        }
+                      }}
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-muted-foreground/60">
+                        {rewriteInstruction.length}/300 — press Ctrl+Enter or click the button to apply
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {rewriteInstruction.length > 0 && (
+                          <button
+                            onClick={() => setRewriteInstruction('')}
+                            className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            Clear
+                          </button>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={handleRewriteWithInstruction}
+                          disabled={isRewriting || !rewriteInstruction.trim()}
+                          className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 px-3"
+                        >
+                          {isRewriting ? (
+                            <>
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              Rewriting…
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="h-3 w-3" />
+                              Apply Instruction
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Suggestions */}
           {hasText && !rewriteResult && (

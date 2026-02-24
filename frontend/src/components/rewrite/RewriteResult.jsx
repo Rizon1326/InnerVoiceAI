@@ -217,8 +217,13 @@ function getGoalInfo(goalId) {
     reduce_sadness: { label: 'Reduce Sadness', icon: '☀️' },
     more_positive: { label: 'Make More Positive', icon: '😊' },
     more_professional: { label: 'Make Professional', icon: '💼' },
+    custom: { label: 'Custom Instruction', icon: '✏️' },
   }
-  return goals[goalId] || { label: goalId, icon: '✨' }
+  // If goalId is a long string (the instruction text itself), truncate it nicely
+  if (!goals[goalId] && goalId && goalId.length > 30) {
+    return { label: `"${goalId.slice(0, 40)}…"`, icon: '✏️' }
+  }
+  return goals[goalId] || { label: goalId || 'Custom', icon: '✨' }
 }
 
 export default RewriteResult

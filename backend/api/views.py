@@ -165,6 +165,7 @@ def rewrite_text(request):
         text = request.data.get('text', '').strip()
         post_id = request.data.get('post_id')
         goal = request.data.get('goal', request.data.get('style', 'more_positive'))  # Accept both goal and style
+        instruction = request.data.get('instruction', '').strip()
         
         if not text:
             return Response({
@@ -223,7 +224,7 @@ def rewrite_text(request):
                 'neuroticism': analysis.personality_neuroticism,
                 'agreeableness': analysis.personality_agreeableness
             }
-        }, language, goal)
+        }, language, goal, instruction=instruction)
 
         # Track rewrite for behavioral analytics
         RewriteRecord.objects.create(
