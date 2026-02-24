@@ -64,6 +64,11 @@ DATABASES = {
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:5173,http://127.0.0.1:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
+# Allow Chrome extension origins (chrome-extension://...)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^chrome-extension://.*$',
+]
+
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],

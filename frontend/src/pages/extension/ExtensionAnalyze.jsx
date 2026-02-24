@@ -16,7 +16,24 @@ const styleOptions = Object.entries(REWRITE_STYLES).map(([key, value]) => ({
  */
 export default function ExtensionAnalyze() {
   const [activeTab, setActiveTab] = React.useState('analyze')
+  const [pendingText, setPendingText] = React.useState('')
   const toast = useToast()
+
+  // Check for pending text from context menu (right-click → "Analyze/Rewrite with InnerVoice AI")
+  React.useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.get(['pendingText', 'pendingAction', 'pendingTimestamp'], (result) => {
+        const { pendingText: text, pendingAction, pendingTimestamp } = result
+        // Only use if set within the last 10 seconds
+        if (text && (Date.now() - (pendingTimestamp || 0)) < 10000) {
+          setPendingText(text)
+          if (pendingAction === 'rewrite') setActiveTab('rewrite')
+          // Clear so it doesn't replay on next popup open
+          chrome.storage.local.remove(['pendingText', 'pendingAction', 'pendingTimestamp'])
+        }
+      })
+    }
+  }, [])
 
   const tabs = [
     { value: 'analyze', label: 'Analyze' },
@@ -45,9 +62,9 @@ export default function ExtensionAnalyze() {
 
       {/* Content */}
       {activeTab === 'analyze' ? (
-        <AnalyzeView toast={toast} />
+        <AnalyzeView toast={toast} pendingText={activeTab === 'analyze' ? pendingText : ''} />
       ) : (
-        <RewriteView toast={toast} />
+        <RewriteView toast={toast} pendingText={activeTab === 'rewrite' ? pendingText : ''} />
       )}
     </div>
   )
@@ -56,10 +73,17 @@ export default function ExtensionAnalyze() {
 /**
  * Analyze view content
  */
-function AnalyzeView({ toast }) {
+function AnalyzeView({ toast, pendingText }) {
   const { analyze, result, isLoading, reset } = useAnalysis()
   const [text, setText] = React.useState('')
   const [copied, setCopied] = React.useState(false)
+
+  // Auto-fill text from context menu
+  React.useEffect(() => {
+    if (pendingText) {
+      setText(pendingText)
+    }
+  }, [pendingText])
 
   const handleAnalyze = async () => {
     if (text.length < 10) {
@@ -219,11 +243,18 @@ function AnalyzeView({ toast }) {
 /**
  * Rewrite view content
  */
-function RewriteView({ toast }) {
+function RewriteView({ toast, pendingText }) {
   const { rewrite, result, isLoading, reset } = useRewrite()
   const [text, setText] = React.useState('')
   const [style, setStyle] = React.useState('professional')
   const [copied, setCopied] = React.useState(false)
+
+  // Auto-fill text from context menu
+  React.useEffect(() => {
+    if (pendingText) {
+      setText(pendingText)
+    }
+  }, [pendingText])
 
   const handleRewrite = async () => {
     if (text.length < 10) {
