@@ -46,18 +46,23 @@ export default function RewritePage() {
 
   // Local state for text editing
   const [editedText, setEditedText] = React.useState(originalText)
-  // Start in editing mode when there is no pre-loaded text (direct navigation to Rewrite)
+  // isEditing: true when user is actively typing/editing (no pre-loaded text or clicked Edit)
   const [isEditing, setIsEditing] = React.useState(!originalText)
   const [rewriteInstruction, setRewriteInstruction] = React.useState('')
   // eslint-disable-next-line no-unused-vars
   const [replacementHistory, setReplacementHistory] = React.useState([])
   const [copiedOriginal, setCopiedOriginal] = React.useState(false)
 
-  // Sync edited text with original
+  // Sync edited text when the store's originalText changes externally
+  // Use a ref to distinguish external store changes from our own saves
+  const isSavingRef = React.useRef(false)
   React.useEffect(() => {
+    if (isSavingRef.current) {
+      isSavingRef.current = false
+      return
+    }
     setEditedText(originalText)
     setReplacementHistory([])
-    // If the original text gets cleared externally, return to edit mode
     if (!originalText) setIsEditing(true)
   }, [originalText])
 
@@ -179,11 +184,11 @@ export default function RewritePage() {
    * Save edited text
    */
   const saveEditedText = () => {
+    // Mark that we are triggering the store update ourselves so the
+    // useEffect does NOT reset editedText or flip isEditing back to true
+    isSavingRef.current = true
     setOriginalText(editedText)
-    // Only leave editing mode if there is analysis data to show the highlighted view
-    if (analysisResult) {
-      setIsEditing(false)
-    }
+    setIsEditing(false)
     clearRewrite()
   }
 
@@ -259,7 +264,7 @@ export default function RewritePage() {
                       )}
                     </Button>
                   )}
-                  {hasText && !isEditing && (
+                  {hasText && hasAnalysis && !isEditing && (
                     <Button variant="ghost" size="sm" onClick={toggleEditMode}>
                       Edit
                     </Button>
@@ -282,7 +287,7 @@ export default function RewritePage() {
                     </span>
                     {isEditing && (
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                        <Button variant="ghost" size="sm" onClick={() => { setEditedText(originalText); setIsEditing(false) }}>
                           Cancel
                         </Button>
                         <Button size="sm" onClick={saveEditedText}>
