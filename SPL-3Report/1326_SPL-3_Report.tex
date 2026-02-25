@@ -20,6 +20,7 @@
 \usepackage{multirow}
 \usepackage{float}
 \usepackage{xcolor}
+\usepackage{pdflscape}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,shapes.misc,arrows.meta,positioning,fit,backgrounds}
 
@@ -1642,7 +1643,9 @@ This section presents detailed test cases organized by test level. Each test cas
 
 \subsubsection{Language Detection Service (\texttt{LanguageDetector})}
 
-\begin{longtable}{|p{1.5cm}|p{2.8cm}|p{2.2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Language Detection Service} \label{tab:tc_lang} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1652,23 +1655,26 @@ This section presents detailed test cases organized by test level. Each test cas
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-LD \newline -01 & Detect Bangla Unicode script & \texttt{LanguageDetector} class available & \texttt{`আমি খুব খুশি আজকে'} & \texttt{language\_code = `bn'} & High & +ve \\
+TC-LD-01 & Detect Bangla Unicode script & \texttt{LanguageDetector} class available & \texttt{`আমি খুব খুশি আজকে'} & \texttt{language\_code = `bn'} & High & +ve \\
 \hline
-TC-LD \newline -02 & Detect Banglish (Roman-script Bangla) & \texttt{LanguageDetector} class available & \texttt{`ami khub khushi ajke'} & \texttt{language\_code = `bn'} & High & +ve \\
+TC-LD-02 & Detect Banglish (Roman-script Bangla) & \texttt{LanguageDetector} class available & \texttt{`ami khub khushi ajke'} & \texttt{language\_code = `bn'} & High & +ve \\
 \hline
-TC-LD \newline -03 & Detect social media Bangla slang & \texttt{LanguageDetector} class available & \texttt{`kothin hoise bhai'} & \texttt{language\_code = `bn'} & Med & +ve \\
+TC-LD-03 & Detect social media Bangla slang & \texttt{LanguageDetector} class available & \texttt{`kothin hoise bhai'} & \texttt{language\_code = `bn'} & Med & +ve \\
 \hline
-TC-LD \newline -04 & Handle empty string gracefully & \texttt{LanguageDetector} class available & \texttt{``} (empty) & Fallback: \texttt{`en'} & High & -ve \\
+TC-LD-04 & Handle empty string gracefully & \texttt{LanguageDetector} class available & \texttt{``} (empty) & Fallback: \texttt{`en'} & High & -ve \\
 \hline
-TC-LD \newline -05 & Reject whitespace-only input & \texttt{LanguageDetector} class available & \texttt{`~~~'} (spaces) & \texttt{is\_supported = False} & Med & -ve \\
+TC-LD-05 & Reject whitespace-only input & \texttt{LanguageDetector} class available & \texttt{`~~~'} (spaces) & \texttt{is\_supported = False} & Med & -ve \\
 \hline
-TC-LD \newline -06 & Return detailed language metadata & \texttt{LanguageDetector} class available & \texttt{`আমি ভালো আছি'} & \texttt{language\_code=`bn'}, \texttt{script\_type} $\in$ \{bangla, banglish, mixed\}, \texttt{is\_supported=True} & Med & +ve \\
+TC-LD-06 & Return detailed language metadata & \texttt{LanguageDetector} class available & \texttt{`আমি ভালো আছি'} & \texttt{language\_code=`bn'}, \texttt{script\_type} $\in$ \{bangla, banglish, mixed\}, \texttt{is\_supported=True} & Med & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsubsection{Sentiment Analysis Service (\texttt{SentimentAnalyzer})}
 
-\begin{longtable}{|p{1.5cm}|p{2.8cm}|p{2.2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Sentiment Analysis Service} \label{tab:tc_sent} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1678,25 +1684,28 @@ TC-LD \newline -06 & Return detailed language metadata & \texttt{LanguageDetecto
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-SA \newline -01 & Model loads successfully at startup & Python env configured & Class instantiation & \texttt{self.analyzer} $\neq$ \texttt{None} & High & +ve \\
+TC-SA-01 & Model loads successfully at startup & Python env configured & Class instantiation & \texttt{self.analyzer} $\neq$ \texttt{None} & High & +ve \\
 \hline
-TC-SA \newline -02 & Output schema validation & Model loaded & \texttt{`I am happy'} & Result contains keys: \texttt{label}, \texttt{score}, \texttt{scores\{positive, neutral, negative\}} & High & +ve \\
+TC-SA-02 & Output schema validation & Model loaded & \texttt{`I am happy'} & Result contains keys: \texttt{label}, \texttt{score}, \texttt{scores\{positive, neutral, negative\}} & High & +ve \\
 \hline
-TC-SA \newline -03 & Probability distribution integrity & Model loaded & \texttt{`Today is a good day'} & $|\sum \texttt{scores} - 1.0| < 0.1$ & High & +ve \\
+TC-SA-03 & Probability distribution integrity & Model loaded & \texttt{`Today is a good day'} & $|\sum \texttt{scores} - 1.0| < 0.1$ & High & +ve \\
 \hline
-TC-SA \newline -04 & Positive sentiment classification & Model loaded & \texttt{`I love this amazing wonderful day!'} & \texttt{label = `positive'} & High & +ve \\
+TC-SA-04 & Positive sentiment classification & Model loaded & \texttt{`I love this amazing wonderful day!'} & \texttt{label = `positive'} & High & +ve \\
 \hline
-TC-SA \newline -05 & Negative sentiment classification & Model loaded & \texttt{`I hate this terrible awful day'} & \texttt{label = `negative'} & High & +ve \\
+TC-SA-05 & Negative sentiment classification & Model loaded & \texttt{`I hate this terrible awful day'} & \texttt{label = `negative'} & High & +ve \\
 \hline
-TC-SA \newline -06 & Bangla text sentiment analysis & Model loaded & \texttt{`আমি খুব খুশি!'}, \texttt{language=`bn'} & Valid label $\in$ \{positive, neutral, negative\}, score $\in \mathbb{R}$ & High & +ve \\
+TC-SA-06 & Bangla text sentiment analysis & Model loaded & \texttt{`আমি খুব খুশি!'}, \texttt{language=`bn'} & Valid label $\in$ \{positive, neutral, negative\}, score $\in \mathbb{R}$ & High & +ve \\
 \hline
-TC-SA \newline -07 & Graceful fallback on model failure & \texttt{model = None} & \texttt{`Test text'} & \texttt{label=`neutral'}, \texttt{score=0.0}, \texttt{scores\{positive $\approx$ 0.33\}} & High & -ve \\
+TC-SA-07 & Graceful fallback on model failure & \texttt{model = None} & \texttt{`Test text'} & \texttt{label=`neutral'}, \texttt{score=0.0}, \texttt{scores\{positive $\approx$ 0.33\}} & High & -ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsubsection{Emotion Detection Service (\texttt{EmotionDetector})}
 
-\begin{longtable}{|p{1.5cm}|p{2.8cm}|p{2.2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Emotion Detection Service} \label{tab:tc_emo} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1706,23 +1715,26 @@ TC-SA \newline -07 & Graceful fallback on model failure & \texttt{model = None} 
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-ED \newline -01 & Output contains all emotion categories & Detector loaded & \texttt{`I am very happy today'} & Keys $\supseteq$ \{joy, sadness, anger, fear, surprise, neutral\} & High & +ve \\
+TC-ED-01 & Output contains all emotion categories & Detector loaded & \texttt{`I am very happy today'} & Keys $\supseteq$ \{joy, sadness, anger, fear, surprise, neutral\} & High & +ve \\
 \hline
-TC-ED \newline -02 & Joy dominance for positive text & Detector loaded & \texttt{`I am so incredibly happy and excited!'} & \texttt{joy > sadness} & High & +ve \\
+TC-ED-02 & Joy dominance for positive text & Detector loaded & \texttt{`I am so incredibly happy and excited!'} & \texttt{joy > sadness} & High & +ve \\
 \hline
-TC-ED \newline -03 & Sadness detection threshold & Detector loaded & \texttt{`I feel so sad and heartbroken today'} & \texttt{sadness > 0.1} & High & +ve \\
+TC-ED-03 & Sadness detection threshold & Detector loaded & \texttt{`I feel so sad and heartbroken today'} & \texttt{sadness > 0.1} & High & +ve \\
 \hline
-TC-ED \newline -04 & Anger detection threshold & Detector loaded & \texttt{`I am furious and extremely angry!'} & \texttt{anger > 0.1} & High & +ve \\
+TC-ED-04 & Anger detection threshold & Detector loaded & \texttt{`I am furious and extremely angry!'} & \texttt{anger > 0.1} & High & +ve \\
 \hline
-TC-ED \newline -05 & Bangla emotion detection & Detector loaded & \texttt{`আমি খুব কষ্ট পাচ্ছি'}, \texttt{language=`bn'} & All six emotion keys present with float values & High & +ve \\
+TC-ED-05 & Bangla emotion detection & Detector loaded & \texttt{`আমি খুব কষ্ট পাচ্ছি'}, \texttt{language=`bn'} & All six emotion keys present with float values & High & +ve \\
 \hline
-TC-ED \newline -06 & Non-negativity constraint & Detector loaded & \texttt{`Random test text'} & $\forall$ score: score $\geq 0.0$ & Med & +ve \\
+TC-ED-06 & Non-negativity constraint & Detector loaded & \texttt{`Random test text'} & $\forall$ score: score $\geq 0.0$ & Med & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsubsection{Personality Analysis Service (\texttt{PersonalityAnalyzer} --- OCEAN Model)}
 
-\begin{longtable}{|p{1.5cm}|p{2.5cm}|p{2.2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Personality Analysis Service} \label{tab:tc_pers} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1732,27 +1744,30 @@ TC-ED \newline -06 & Non-negativity constraint & Detector loaded & \texttt{`Rand
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-PA \newline -01 & OCEAN trait schema validation & Analyzer instantiated & \texttt{`I love exploring new ideas'} & \texttt{traits} dict contains all 5 OCEAN keys & High & +ve \\
+TC-PA-01 & OCEAN trait schema validation & Analyzer instantiated & \texttt{`I love exploring new ideas'} & \texttt{traits} dict contains all 5 OCEAN keys & High & +ve \\
 \hline
-TC-PA \newline -02 & Score range constraint & Analyzer instantiated & \texttt{`Test personality text'} & $\forall$ trait: $0.0 \leq$ score $\leq 1.0$ & High & +ve \\
+TC-PA-02 & Score range constraint & Analyzer instantiated & \texttt{`Test personality text'} & $\forall$ trait: $0.0 \leq$ score $\leq 1.0$ & High & +ve \\
 \hline
-TC-PA \newline -03 & High Extraversion detection & Analyzer instantiated; \texttt{sentiment=0.8}, \texttt{joy=0.7} & Social/enthusiastic text & \texttt{extraversion > 0.5} & Med & +ve \\
+TC-PA-03 & High Extraversion detection & Analyzer instantiated; \texttt{sentiment=0.8}, \texttt{joy=0.7} & Social/enthusiastic text & \texttt{extraversion > 0.5} & Med & +ve \\
 \hline
-TC-PA \newline -04 & High Neuroticism detection & Analyzer instantiated; \texttt{sentiment=-0.7}, \texttt{sadness=0.4} & Negative/anxious text & \texttt{neuroticism > 0.5} & Med & +ve \\
+TC-PA-04 & High Neuroticism detection & Analyzer instantiated; \texttt{sentiment=-0.7}, \texttt{sadness=0.4} & Negative/anxious text & \texttt{neuroticism > 0.5} & Med & +ve \\
 \hline
-TC-PA \newline -05 & High Agreeableness detection & Analyzer instantiated; \texttt{sentiment=0.7}, \texttt{joy=0.5} & Cooperative/empathetic text & \texttt{agreeableness > 0.5} & Med & +ve \\
+TC-PA-05 & High Agreeableness detection & Analyzer instantiated; \texttt{sentiment=0.7}, \texttt{joy=0.5} & Cooperative/empathetic text & \texttt{agreeableness > 0.5} & Med & +ve \\
 \hline
-TC-PA \newline -06 & High Openness detection & Analyzer instantiated; \texttt{sentiment=0.5}, \texttt{surprise=0.3} & Creative/abstract text & \texttt{openness > 0.5} & Med & +ve \\
+TC-PA-06 & High Openness detection & Analyzer instantiated; \texttt{sentiment=0.5}, \texttt{surprise=0.3} & Creative/abstract text & \texttt{openness > 0.5} & Med & +ve \\
 \hline
-TC-PA \newline -07 & Sentiment influence on Neuroticism & Analyzer instantiated & Same text with \texttt{sentiment=+0.9} vs \texttt{sentiment=-0.9} & $N_{\text{negative}} > N_{\text{positive}}$ & High & +ve \\
+TC-PA-07 & Sentiment influence on Neuroticism & Analyzer instantiated & Same text with \texttt{sentiment=+0.9} vs \texttt{sentiment=-0.9} & $N_{\text{negative}} > N_{\text{positive}}$ & High & +ve \\
 \hline
-TC-PA \newline -08 & Null/empty input resilience & Analyzer instantiated & \texttt{None} and \texttt{``} & Returns default float traits; no exception raised & High & -ve \\
+TC-PA-08 & Null/empty input resilience & Analyzer instantiated & \texttt{None} and \texttt{``} & Returns default float traits; no exception raised & High & -ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsection{Level 2: Component Test Cases --- Data Models}
 
-\begin{longtable}{|p{1.5cm}|p{2.8cm}|p{2.2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Django ORM Models} \label{tab:tc_model} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1762,23 +1777,26 @@ TC-PA \newline -08 & Null/empty input resilience & Analyzer instantiated & \text
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-MD \newline -01 & Post default field values & Test user exists & \texttt{Post.create(text= `Hello')} & \texttt{language=`en'}, \texttt{tone=`friendly'}, \texttt{intent=`informational'} & High & +ve \\
+TC-MD-01 & Post default field values & Test user exists & \texttt{Post.create(text= `Hello')} & \texttt{language=`en'}, \texttt{tone=`friendly'}, \texttt{intent=`informational'} & High & +ve \\
 \hline
-TC-MD \newline -02 & UUID primary key generation & Test user exists & Create Post & \texttt{post.id} is valid \texttt{uuid.UUID} instance & High & +ve \\
+TC-MD-02 & UUID primary key generation & Test user exists & Create Post & \texttt{post.id} is valid \texttt{uuid.UUID} instance & High & +ve \\
 \hline
-TC-MD \newline -03 & Chronological ordering & Test user exists; 2 posts created sequentially & Query \texttt{Post.objects.filter(user)} & Latest post (\texttt{p2}) appears at index 0 & Med & +ve \\
+TC-MD-03 & Chronological ordering & Test user exists; 2 posts created sequentially & Query \texttt{Post.objects.filter(user)} & Latest post (\texttt{p2}) appears at index 0 & Med & +ve \\
 \hline
-TC-MD \newline -04 & User cascade deletion & Test user with 1 post & \texttt{user.delete()} & \texttt{Post.objects.count() == 0} & High & +ve \\
+TC-MD-04 & User cascade deletion & Test user with 1 post & \texttt{user.delete()} & \texttt{Post.objects.count() == 0} & High & +ve \\
 \hline
-TC-MD \newline -05 & Analysis data integrity & Post with Analysis record & Create Analysis with known values & All sentiment, emotion, and personality fields match input & High & +ve \\
+TC-MD-05 & Analysis data integrity & Post with Analysis record & Create Analysis with known values & All sentiment, emotion, and personality fields match input & High & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsection{Level 3: API Integration Test Cases}
 
 \subsubsection{Authentication Endpoints}
 
-\begin{longtable}{|p{1.5cm}|p{2.5cm}|p{2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Authentication API (\texttt{/api/auth/})} \label{tab:tc_auth} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1788,21 +1806,24 @@ TC-MD \newline -05 & Analysis data integrity & Post with Analysis record & Creat
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-AU \newline -01 & Successful user registration & No existing user & \texttt{POST} with valid username, email, password & HTTP 201; response contains \texttt{token} and \texttt{username} & High & +ve \\
+TC-AU-01 & Successful user registration & No existing user & \texttt{POST} with valid username, email, password & HTTP 201; response contains \texttt{token} and \texttt{username} & High & +ve \\
 \hline
-TC-AU \newline -02 & Registration side effects & No existing user & \texttt{POST} with valid data & \texttt{UserProfile} and \texttt{ProjectMetrics} records created & High & +ve \\
+TC-AU-02 & Registration side effects & No existing user & \texttt{POST} with valid data & \texttt{UserProfile} and \texttt{ProjectMetrics} records created & High & +ve \\
 \hline
-TC-AU \newline -03 & Missing required field (username) & None & \texttt{POST} without \texttt{username} & HTTP 400; \texttt{success=false} & High & -ve \\
+TC-AU-03 & Missing required field (username) & None & \texttt{POST} without \texttt{username} & HTTP 400; \texttt{success=false} & High & -ve \\
 \hline
-TC-AU \newline -04 & Duplicate username rejection & User `existing' in DB & \texttt{POST} with \texttt{username= `existing'} & HTTP 400; error contains ``Username already exists'' & High & -ve \\
+TC-AU-04 & Duplicate username rejection & User `existing' in DB & \texttt{POST} with \texttt{username= `existing'} & HTTP 400; error contains ``Username already exists'' & High & -ve \\
 \hline
-TC-AU \newline -05 & Empty field validation & None & \texttt{POST} with all fields as \texttt{``} & HTTP 400 & Med & -ve \\
+TC-AU-05 & Empty field validation & None & \texttt{POST} with all fields as \texttt{``} & HTTP 400 & Med & -ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsubsection{Text Analysis Endpoint}
 
-\begin{longtable}{|p{1.5cm}|p{2.5cm}|p{2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Text Analysis API (\texttt{POST /api/analyze/})} \label{tab:tc_analyze} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1812,23 +1833,26 @@ TC-AU \newline -05 & Empty field validation & None & \texttt{POST} with all fiel
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-AA \newline -01 & Authentication enforcement & No auth token set & \texttt{POST \{text: `Hello'\}} & HTTP 401 Unauthorized & High & -ve \\
+TC-AA-01 & Authentication enforcement & No auth token set & \texttt{POST \{text: `Hello'\}} & HTTP 401 Unauthorized & High & -ve \\
 \hline
-TC-AA \newline -02 & Empty text rejection & Authenticated user & \texttt{POST \{text: `'\}} & HTTP 400; \texttt{success=false} & High & -ve \\
+TC-AA-02 & Empty text rejection & Authenticated user & \texttt{POST \{text: `'\}} & HTTP 400; \texttt{success=false} & High & -ve \\
 \hline
-TC-AA \newline -03 & Minimum length validation & Authenticated user & \texttt{POST \{text: `ab'\}} & HTTP 400; error contains ``too short'' & Med & -ve \\
+TC-AA-03 & Minimum length validation & Authenticated user & \texttt{POST \{text: `ab'\}} & HTTP 400; error contains ``too short'' & Med & -ve \\
 \hline
-TC-AA \newline -04 & Whitespace-only rejection & Authenticated user & \texttt{POST \{text: `~~~'\}} & HTTP 400 & Med & -ve \\
+TC-AA-04 & Whitespace-only rejection & Authenticated user & \texttt{POST \{text: `~~~'\}} & HTTP 400 & Med & -ve \\
 \hline
-TC-AA \newline -05 & Successful Bangla text analysis & Authenticated user; services mocked & \texttt{POST \{text: `আমি খুব খুশি!'\}} & HTTP 200; response contains \texttt{data} and \texttt{context\_analysis} & High & +ve \\
+TC-AA-05 & Successful Bangla text analysis & Authenticated user; services mocked & \texttt{POST \{text: `আমি খুব খুশি!'\}} & HTTP 200; response contains \texttt{data} and \texttt{context\_analysis} & High & +ve \\
 \hline
-TC-AA \newline -06 & Database record creation & Authenticated user; services mocked & \texttt{POST} with valid text & \texttt{Post.objects.count()} incremented by 1; \texttt{post.language = `bn'} & High & +ve \\
+TC-AA-06 & Database record creation & Authenticated user; services mocked & \texttt{POST} with valid text & \texttt{Post.objects.count()} incremented by 1; \texttt{post.language = `bn'} & High & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsubsection{Text Rewriting Endpoint}
 
-\begin{longtable}{|p{1.5cm}|p{2.5cm}|p{2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Rewrite API (\texttt{POST /api/rewrite/})} \label{tab:tc_rewrite} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1838,21 +1862,24 @@ TC-AA \newline -06 & Database record creation & Authenticated user; services moc
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-RW \newline -01 & Authentication enforcement & No auth token & \texttt{POST \{text: `Test'\}} & HTTP 401 & High & -ve \\
+TC-RW-01 & Authentication enforcement & No auth token & \texttt{POST \{text: `Test'\}} & HTTP 401 & High & -ve \\
 \hline
-TC-RW \newline -02 & Empty text rejection & Authenticated user & \texttt{POST \{text: `'\}} & HTTP 400; error contains ``required'' & High & -ve \\
+TC-RW-02 & Empty text rejection & Authenticated user & \texttt{POST \{text: `'\}} & HTTP 400; error contains ``required'' & High & -ve \\
 \hline
-TC-RW \newline -03 & Rewrite with valid \texttt{post\_id} & Post and Analysis exist; rewriter mocked & \texttt{POST \{text, post\_id, goal\}} & HTTP 200; \texttt{success=true} & High & +ve \\
+TC-RW-03 & Rewrite with valid \texttt{post\_id} & Post and Analysis exist; rewriter mocked & \texttt{POST \{text, post\_id, goal\}} & HTTP 200; \texttt{success=true} & High & +ve \\
 \hline
-TC-RW \newline -04 & Invalid \texttt{post\_id} handling & No matching post in DB & \texttt{POST \{post\_id: UUID-zeros\}} & HTTP 404 Not Found & Med & -ve \\
+TC-RW-04 & Invalid \texttt{post\_id} handling & No matching post in DB & \texttt{POST \{post\_id: UUID-zeros\}} & HTTP 404 Not Found & Med & -ve \\
 \hline
-TC-RW \newline -05 & Rewrite without \texttt{post\_id} & Authenticated; all services mocked & \texttt{POST \{text: `I hate everything'\}} & Post, Analysis, and RewriteRecord all created & High & +ve \\
+TC-RW-05 & Rewrite without \texttt{post\_id} & Authenticated; all services mocked & \texttt{POST \{text: `I hate everything'\}} & Post, Analysis, and RewriteRecord all created & High & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsubsection{Health Check Endpoint}
 
-\begin{longtable}{|p{1.5cm}|p{2.8cm}|p{2.2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- Health Check (\texttt{GET /api/health/})} \label{tab:tc_health} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1862,17 +1889,20 @@ TC-RW \newline -05 & Rewrite without \texttt{post\_id} & Authenticated; all serv
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-HC \newline -01 & Service availability & Server running & \texttt{GET /api/health/} & HTTP 200 OK & High & +ve \\
+TC-HC-01 & Service availability & Server running & \texttt{GET /api/health/} & HTTP 200 OK & High & +ve \\
 \hline
-TC-HC \newline -02 & Response schema & Server running & \texttt{GET /api/health/} & \texttt{\{success: true, message: `API running'\}} & Med & +ve \\
+TC-HC-02 & Response schema & Server running & \texttt{GET /api/health/} & \texttt{\{success: true, message: `API running'\}} & Med & +ve \\
 \hline
-TC-HC \newline -03 & Public accessibility & No auth token & \texttt{GET /api/health/} & HTTP 200 (no authentication required) & High & +ve \\
+TC-HC-03 & Public accessibility & No auth token & \texttt{GET /api/health/} & HTTP 200 (no authentication required) & High & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \subsection{Level 4: End-to-End Integration Test Cases}
 
-\begin{longtable}{|p{1.3cm}|p{2.5cm}|p{2cm}|p{2.5cm}|p{2.5cm}|p{0.8cm}|p{0.8cm}|}
+\begin{landscape}
+\footnotesize
+\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
 \caption{Test Cases --- End-to-End Integration} \label{tab:tc_e2e} \\
 \hline
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Steps} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
@@ -1882,21 +1912,22 @@ TC-HC \newline -03 & Public accessibility & No auth token & \texttt{GET /api/hea
 \textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Steps} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
 \hline
 \endhead
-TC-IT \newline -01 & Registration $\rightarrow$ Login $\rightarrow$ Profile access & Clean database & 1.~Register \newline 2.~Login \newline 3.~GET profile & All steps return success; profile username matches & High & +ve \\
+TC-IT-01 & Registration $\rightarrow$ Login $\rightarrow$ Profile access & Clean database & 1.~Register \newline 2.~Login \newline 3.~GET profile & All steps return success; profile username matches & High & +ve \\
 \hline
-TC-IT \newline -02 & Analyze $\rightarrow$ History retrieval & Authenticated user & 1.~POST analyze \newline 2.~GET history & History contains 1 record matching the analyzed post ID & High & +ve \\
+TC-IT-02 & Analyze $\rightarrow$ History retrieval & Authenticated user & 1.~POST analyze \newline 2.~GET history & History contains 1 record matching the analyzed post ID & High & +ve \\
 \hline
-TC-IT \newline -03 & Analyze $\rightarrow$ Rewrite $\rightarrow$ Record verification & Authenticated; services mocked & 1.~POST analyze \newline 2.~POST rewrite with \texttt{post\_id} & \texttt{RewriteRecord.count() == 1} & High & +ve \\
+TC-IT-03 & Analyze $\rightarrow$ Rewrite $\rightarrow$ Record verification & Authenticated; services mocked & 1.~POST analyze \newline 2.~POST rewrite with \texttt{post\_id} & \texttt{RewriteRecord.count() == 1} & High & +ve \\
 \hline
-TC-IT \newline -04 & Multiple analyses accumulation & Authenticated; services mocked & Submit 3 analyses sequentially & \texttt{Post.count() == 3}; \texttt{Analysis.count() == 3} & Med & +ve \\
+TC-IT-04 & Multiple analyses accumulation & Authenticated; services mocked & Submit 3 analyses sequentially & \texttt{Post.count() == 3}; \texttt{Analysis.count() == 3} & Med & +ve \\
 \hline
-TC-IT \newline -05 & Cross-user data isolation & Two registered users & User~A creates post; User~B queries history & User~B's history returns empty list & High & +ve \\
+TC-IT-05 & Cross-user data isolation & Two registered users & User~A creates post; User~B queries history & User~B's history returns empty list & High & +ve \\
 \hline
-TC-IT \newline -06 & Account deletion cascade & User with Post, Analysis, RewriteRecord & \texttt{DELETE /api/profile/delete/} & User, Post, Analysis, and RewriteRecord all removed from DB & High & +ve \\
+TC-IT-06 & Account deletion cascade & User with Post, Analysis, RewriteRecord & \texttt{DELETE /api/profile/delete/} & User, Post, Analysis, and RewriteRecord all removed from DB & High & +ve \\
 \hline
-TC-IT \newline -07 & Token invalidation after logout & Authenticated user & 1.~GET profile (200) \newline 2.~POST logout \newline 3.~GET profile & Step~3 returns HTTP 401 Unauthorized & High & +ve \\
+TC-IT-07 & Token invalidation after logout & Authenticated user & 1.~GET profile (200) \newline 2.~POST logout \newline 3.~GET profile & Step~3 returns HTTP 401 Unauthorized & High & +ve \\
 \hline
 \end{longtable}
+\end{landscape}
 
 \section{Requirements Traceability Matrix}
 
