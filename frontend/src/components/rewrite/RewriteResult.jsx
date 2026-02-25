@@ -1,6 +1,31 @@
 import * as React from 'react'
 import { Button } from '@/components/common'
-import { Copy, Check, RefreshCw, Sparkles, ArrowRight, Brain } from 'lucide-react'
+import { Copy, Check, RefreshCw, Sparkles, Brain } from 'lucide-react'
+
+/**
+ * Condense a verbose improvement description into a short, professional phrase.
+ * Strips filler words and truncates to the core action.
+ */
+function condenseLine(text) {
+  if (!text || typeof text !== 'string') return text
+  // Remove leading bullet / dash / arrow characters
+  let s = text.replace(/^[\s\-•→▸]+/, '').trim()
+  // Collapse "Replaced X with Y" → "X → Y"
+  const replaceMatch = s.match(/^replaced\s+["']?(.+?)["']?\s+with\s+["']?(.+?)["']?\.?$/i)
+  if (replaceMatch) return `${replaceMatch[1]} → ${replaceMatch[2]}`
+  // Collapse "Transformed X into Y" → "X → Y"
+  const transformMatch = s.match(/^transformed\s+(.+?)\s+into\s+(.+?)\.?$/i)
+  if (transformMatch) return `${transformMatch[1]} → ${transformMatch[2]}`
+  // Collapse "Reframed X from Y to Z" → "Y → Z"
+  const reframeMatch = s.match(/^reframed\s+.+?\s+from\s+(.+?)\s+to\s+(.+?)\.?$/i)
+  if (reframeMatch) return `${reframeMatch[1]} → ${reframeMatch[2]}`
+  // Collapse "Shifted X from Y to Z" → "Y → Z"
+  const shiftMatch = s.match(/^shifted\s+.+?\s+from\s+(.+?)\s+to\s+(.+?)\.?$/i)
+  if (shiftMatch) return `${shiftMatch[1]} → ${shiftMatch[2]}`
+  // Cap length at ~80 chars
+  if (s.length > 80) s = s.slice(0, 77) + '…'
+  return s
+}
 
 /**
  * RewriteResult Component
@@ -15,18 +40,19 @@ import { Copy, Check, RefreshCw, Sparkles, ArrowRight, Brain } from 'lucide-reac
 export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAnalyzeThis }) {
   const [copied, setCopied] = React.useState(false)
   
-  // Handle improvements as array (new format) or object (old format)
+  // Handle improvements as array (new format) or object (old format),
+  // then condense each item into a short, professional summary.
   const improvements = React.useMemo(() => {
     if (!result) return []
     const rawImprovements = result.improvements || []
+    let items = []
     if (Array.isArray(rawImprovements)) {
-      return rawImprovements
+      items = rawImprovements
+    } else if (typeof rawImprovements === 'object') {
+      items = Object.entries(rawImprovements).map(([key, value]) => `${key}: ${value}`)
     }
-    // Convert old object format to array
-    if (typeof rawImprovements === 'object') {
-      return Object.entries(rawImprovements).map(([key, value]) => `${key}: ${value}`)
-    }
-    return []
+    // Condense verbose improvement strings into concise phrases
+    return items.map(s => condenseLine(s))
   }, [result])
 
   if (!result) return null
@@ -79,19 +105,21 @@ export function RewriteResult({ result, selectedGoal, onCopy, onTryAnother, onAn
 
       {/* Improvements Made */}
       {improvements.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium flex items-center gap-2">
-            <span className="text-green-500">✓</span>
-            Improvements Made
+        <div className="space-y-1.5">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+            <Check className="h-3.5 w-3.5 text-green-500" />
+            Improvements
           </h4>
-          <ul className="space-y-1">
+          <div className="flex flex-wrap gap-1.5">
             {improvements.map((improvement, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <ArrowRight className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                <span>{improvement}</span>
-              </li>
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+              >
+                {improvement}
+              </span>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
