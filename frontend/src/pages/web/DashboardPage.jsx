@@ -25,7 +25,6 @@ import {
   Clock,
   BarChart3,
   Globe,
-  Pencil,
   Flame,
   RefreshCw,
   Zap,
@@ -148,7 +147,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPI Stat Cards ─────────────────────────────────────── */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total Analyses"
           value={stats.totalAnalyses}
@@ -156,14 +155,6 @@ export default function DashboardPage() {
           gradient="from-blue-500 to-indigo-500"
           loading={isLoading}
           subtitle={stats.daysActive > 0 ? `${stats.daysActive} active days` : undefined}
-        />
-        <StatCard
-          title="Texts Rewritten"
-          value={stats.totalRewrites}
-          icon={Pencil}
-          gradient="from-emerald-500 to-teal-500"
-          loading={isLoading}
-          subtitle={stats.languagesUsed > 0 ? `${stats.languagesUsed} language${stats.languagesUsed > 1 ? 's' : ''}` : undefined}
         />
         <StatCard
           title="Current Streak"
