@@ -315,6 +315,193 @@ The line from bottom-left (low early values) to the right side (moderate values)
 
 ---
 
+## 6. Writing Consistency Radar Chart
+
+### What it shows
+
+The **Writing Consistency** card displays two things:
+
+1. **A headline score** — e.g., `Score: 49.9/100 (Variable)` — this is the composite Writing Consistency score described in Section 3.
+2. **A radar (spider) chart** — with 5 axes (Sentiment, Tone, Post Type, Language, Word Count), each scored 0–100.
+
+In your screenshot, the radar shape is uneven and relatively small, which means no single dimension has a very high consistency — hence the overall "Variable" label and ~50 score.
+
+### How the radar chart is built
+
+#### Backend: five sub-dimension scores
+
+The `_writing_consistency()` method in `BehavioralAnalyticsEngine` returns a `components` dict:
+
+```json
+{
+  "sentiment": 62.3,
+  "tone": 45.0,
+  "post_type": 38.7,
+  "language": 55.0,
+  "word_count": 41.2
+}
+```
+
+Each value is a 0–100 score calculated as follows:
+
+| Dimension | What it measures | How it's scored |
+| --- | --- | --- |
+| **Sentiment** | How stable your daily avg sentiment is | `100 × e^(-2 × std_dev)` — low std dev of daily `avg_sentiment_score` → high score |
+| **Tone** | How concentrated your detected tone is (e.g., always "positive" vs. spread across positive/neutral/negative) | `(1 - normalised_Shannon_entropy) × 100` — always same tone → 100 |
+| **Post Type** | Whether you always write the same type (expressive, informative, etc.) or mix them | `(1 - normalised_Shannon_entropy) × 100` — always same type → 100 |
+| **Language** | Whether you stick to one language (Bangla, English, etc.) or switch | `(1 - normalised_Shannon_entropy) × 100` — always same language → 100 |
+| **Word Count** | How uniform your post lengths are | `100 × e^(-2 × std_dev)` — all similar lengths → high score |
+
+#### Frontend: mapping to radar axes
+
+The `ConsistencyRadar` component receives `writingConsistency.components` and maps it directly:
+
+```javascript
+function ConsistencyRadar({ data }) {
+  // data = { sentiment: 62.3, tone: 45.0, post_type: 38.7, ... }
+  const radarData = Object.entries(data).map(([key, value]) => ({
+    dimension: _humanize(key),  // "Sentiment", "Tone", "Post Type", ...
+    score: value,               // 0–100
+  }))
+
+  return (
+    <RadarChart data={radarData}>
+      <PolarRadiusAxis domain={[0, 100]} />  {/* fixed 0–100 scale */}
+      <Radar dataKey="score" />
+    </RadarChart>
+  )
+}
+```
+
+Each axis goes from 0 (centre) to 100 (outer edge). The filled polygon connects the five dimension scores.
+
+### Why a radar chart
+
+- **Multi-dimensional at a glance** — you can immediately see which dimensions are strong (reaching toward the edge) and which are weak (staying near the centre).
+- **Shape tells a story** — a large, balanced pentagon = highly consistent across all dimensions. A spiky, uneven shape = inconsistent in some areas but not others. A small shape = inconsistent overall.
+- **Actionable** — if "Tone" is low but "Language" is high, the user knows they are consistent in language choice but vary their emotional tone frequently.
+
+### Reading your screenshot (Score: 49.9, Variable)
+
+In your screenshot, the radar polygon is small and uneven:
+
+- The chart area is relatively small → none of the 5 dimensions are close to 100.
+- **Sentiment** axis extends the furthest → your daily sentiment scores are the most stable dimension.
+- **Post Type** and **Word Count** appear smaller → you vary your writing types and post lengths frequently.
+- The overall composite is `49.9` which falls in the `35–54` range → label is **"Variable"**.
+
+This means your writing style shifts moderately — some days you write long expressive posts, other days short informative ones, mixing tones and languages.
+
+---
+
+## 7. Key Metric Trends (Direction Indicators)
+
+### What it shows
+
+The **Key Metric Trends** card displays 6 small indicator tiles, each showing:
+
+- **Metric name** (Sentiment, Joy, Sadness, Anger, Openness, Neuroticism)
+- **Trend value** — the numeric change (e.g., `-0.027`, `+0.277`)
+- **Trend arrow** — green ↗ (positive improvement), red ↘ (negative/worsening), or grey → (stable)
+- **Current value** — the latest day's value for that metric
+
+### How each trend is calculated
+
+Each tile comes from `ProgressTracker.calculate_trend(user, metric_name, days=30)`:
+
+```python
+progress_list = EmotionalProgress.objects.filter(
+    user=user, date >= 30_days_ago
+).order_by('date')
+
+current  = progress_list[-1].{metric}   # last day's value
+previous = progress_list[0].{metric}    # first day's value
+
+trend = current - previous
+```
+
+So the **trend value is simply: latest day's value minus earliest day's value** over the 30-day window.
+
+### How "improvement" direction is decided
+
+The key insight is that **"positive" vs "negative" improvement depends on which metric it is**:
+
+```python
+# For these metrics, INCREASE = good (positive improvement)
+if metric in ['avg_sentiment_score', 'avg_emotion_joy', 'avg_personality_openness']:
+    improvement = 'positive' if trend > 0 else 'negative'
+
+# For these metrics, DECREASE = good (positive improvement)
+elif metric in ['avg_emotion_sadness', 'avg_emotion_anger', 'avg_personality_neuroticism']:
+    improvement = 'positive' if trend < 0 else 'negative'
+```
+
+This is because:
+
+| Metric | Higher is... | Lower is... |
+| --- | --- | --- |
+| Sentiment | Better (more positive writing) | Worse |
+| Joy | Better (happier) | Worse |
+| Openness | Better (more open-minded) | Worse |
+| Sadness | Worse (more sad) | Better |
+| Anger | Worse (more angry) | Better |
+| Neuroticism | Worse (more anxious/unstable) | Better |
+
+### Reading your screenshot values
+
+| Metric | Trend | Arrow color | Current | Interpretation |
+| --- | --- | --- | --- | --- |
+| **Sentiment** | -0.027 | 🔴 Red | 0.521 | Sentiment dropped slightly from first to last day → negative |
+| **Joy** | +0.059 | 🟢 Green | 0.077 | Joy increased → positive improvement |
+| **Sadness** | +0.277 | 🔴 Red | 0.313 | Sadness increased significantly → **negative** (more sad = bad) |
+| **Anger** | +0.005 | 🔴 Red | 0.036 | Anger increased slightly → **negative** (more anger = bad) |
+| **Openness** | -3.909 | 🔴 Red | 23.500 | Openness dropped → negative (less open = bad) |
+| **Neuroticism** | +6.696 | 🔴 Red | 19.923 | Neuroticism increased → **negative** (more neurotic = bad) |
+
+**Note on Sadness (+0.277, red):** Even though the number is positive (`+0.277`), the arrow is **red** because for sadness, an increase is a *negative* improvement — you're writing sadder content than before. The system understands that "more sadness" is not good, so it marks it red.
+
+**Note on Neuroticism (+6.696, red):** Similarly, neuroticism increasing is marked red because higher neuroticism means more emotional instability in your writing. The scale is 0–100 (personality trait percentage), so going from ~13 to ~20 is a notable increase.
+
+**Note on Openness (-3.909, red):** Openness decreasing is red because less openness means less creative/open-minded expression. It dropped from ~27.4 to 23.5.
+
+### Where the data comes from
+
+The endpoint `GET /api/progress/trends/?days=30` calls `ProgressTracker.calculate_trend()` for each of these 6 metrics:
+
+```python
+metrics = {
+    'sentiment_trend':   calculate_trend(user, 'avg_sentiment_score', 30),
+    'joy_trend':         calculate_trend(user, 'avg_emotion_joy', 30),
+    'sadness_trend':     calculate_trend(user, 'avg_emotion_sadness', 30),
+    'anger_trend':       calculate_trend(user, 'avg_emotion_anger', 30),
+    'neuroticism_trend': calculate_trend(user, 'avg_personality_neuroticism', 30),
+    'openness_trend':    calculate_trend(user, 'avg_personality_openness', 30),
+}
+```
+
+The frontend `useDashboard` hook maps these into `emotionalTrends`:
+
+```javascript
+emotionalTrends = {
+    sentiment:   trends.sentiment_trend,    // { current, previous, trend, improvement }
+    joy:         trends.joy_trend,
+    sadness:     trends.sadness_trend,
+    anger:       trends.anger_trend,
+    openness:    trends.openness_trend,
+    neuroticism: trends.neuroticism_trend,
+}
+```
+
+### Why these 6 metrics
+
+These 6 were chosen to cover the three pillars of the analysis:
+
+1. **Sentiment** (overall emotional valence) — the most important single metric
+2. **Emotions** (Joy, Sadness, Anger) — the 3 most impactful emotions; fear and surprise were excluded as they're less actionable
+3. **Personality** (Openness, Neuroticism) — the 2 most dynamic Big Five traits; conscientiousness, extraversion, and agreeableness change less over short periods
+
+---
+
 ## Data Flow Summary
 
 ```
