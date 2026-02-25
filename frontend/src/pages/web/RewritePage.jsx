@@ -104,6 +104,42 @@ export default function RewritePage() {
   }
 
   /**
+   * Handle rewrite with custom instruction only (no goal needed)
+   */
+  const handleCustomRewrite = async () => {
+    if (!editedText || editedText.length < 10) {
+      toast.error('Text too short', 'Please enter at least 10 characters.')
+      return
+    }
+    if (!customInstruction.trim()) {
+      toast.error('No instruction', 'Please write how you want the text rewritten.')
+      return
+    }
+
+    setSelectedGoal('custom')
+    setIsRewriting(true)
+    clearRewrite()
+
+    try {
+      const response = await analysisService.rewriteText({
+        text: editedText,
+        goal: 'custom',
+        style: 'custom',
+        custom_instruction: customInstruction.trim(),
+      })
+
+      const data = response.data || response
+      setRewriteResult(data)
+      toast.success('Rewrite Complete', 'Your text has been transformed!')
+    } catch (error) {
+      console.error('Rewrite error:', error)
+      toast.error('Rewrite Failed', error.message || 'Please try again.')
+    } finally {
+      setIsRewriting(false)
+    }
+  }
+
+  /**
    * Handle try another goal
    */
   const handleTryAnother = () => {
@@ -324,6 +360,11 @@ export default function RewritePage() {
                       onChange={(e) => setCustomInstruction(e.target.value)}
                       placeholder='e.g. "increase sadness", "make it formal", "sadness komau", "আরও ইতিবাচক করো"...'
                       className="min-h-[80px] resize-none pr-10 text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && customInstruction.trim()) {
+                          handleCustomRewrite()
+                        }
+                      }}
                     />
                     {customInstruction && (
                       <button
@@ -335,14 +376,6 @@ export default function RewritePage() {
                       </button>
                     )}
                   </div>
-                  {customInstruction.trim() && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
-                      <Send className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <p className="text-xs text-primary">
-                        Your instruction will be applied when you select an improvement goal
-                      </p>
-                    </div>
-                  )}
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { label: 'Increase sadness', value: 'increase sadness' },
@@ -359,6 +392,27 @@ export default function RewritePage() {
                       </button>
                     ))}
                   </div>
+                  <Button
+                    onClick={handleCustomRewrite}
+                    disabled={!customInstruction.trim() || isRewriting}
+                    className="w-full gap-2"
+                    size="sm"
+                  >
+                    {isRewriting && selectedGoal === 'custom' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Rewriting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Rewrite with This Instruction
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Press <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Ctrl</kbd> + <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Enter</kbd> to send · Or pick an improvement goal on the right
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -6,6 +6,10 @@ import re
 class TextRewriter:
     # Goal-specific instructions for rewriting
     GOAL_INSTRUCTIONS = {
+        'custom': {
+            'instruction': 'Rewrite the text based on the user\'s custom instruction provided below. Follow their intent precisely.',
+            'focus': 'user-defined transformation'
+        },
         'increase_openness': {
             'instruction': 'Make the text more creative, open-minded, and imaginative. Use more expressive language and explore multiple perspectives.',
             'focus': 'creativity and open-mindedness'
@@ -242,7 +246,16 @@ class TextRewriter:
             # Build custom instruction block if provided
             custom_instruction_block = ''
             if custom_instruction:
-                custom_instruction_block = f"""
+                if goal == 'custom':
+                    custom_instruction_block = f"""
+            
+            PRIMARY USER INSTRUCTION (this is the main goal — follow it precisely):
+            "{custom_instruction}"
+            The user may write instructions in English, Bangla, or Banglish (romanized Bangla).
+            Understand and apply their intent regardless of the language they used.
+            """
+                else:
+                    custom_instruction_block = f"""
             
             ADDITIONAL USER INSTRUCTION (apply this on top of the goal):
             "{custom_instruction}"
