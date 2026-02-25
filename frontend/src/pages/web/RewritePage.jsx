@@ -69,6 +69,20 @@ export default function RewritePage() {
     return analysis.emotions || {}
   }, [analysisResult])
 
+  // Extract personality traits for goal recommendations
+  const personality = React.useMemo(() => {
+    if (!analysisResult) return {}
+    const analysis = analysisResult.analysis || analysisResult
+    return analysis.personality || {}
+  }, [analysisResult])
+
+  // Extract sentiment data for goal recommendations
+  const sentiment = React.useMemo(() => {
+    if (!analysisResult) return {}
+    const analysis = analysisResult.analysis || analysisResult
+    return analysis.sentiment || {}
+  }, [analysisResult])
+
   /**
    * Handle rewrite request
    */
@@ -445,6 +459,8 @@ export default function RewritePage() {
                   onSelect={handleRewrite}
                   isLoading={isRewriting}
                   emotions={emotions}
+                  personality={personality}
+                  sentiment={sentiment}
                 />
               </CardContent>
             </Card>

@@ -33,7 +33,39 @@ class TextRewriter:
         'more_professional': {
             'instruction': 'Polish the text for business or formal contexts. Use professional vocabulary, proper structure, and formal tone.',
             'focus': 'professional and formal tone'
-        }
+        },
+        'reduce_fear': {
+            'instruction': 'Remove anxious, fearful, or worried undertones. Replace hesitant language with confident, reassuring expressions while keeping the core message.',
+            'focus': 'confidence and reassurance'
+        },
+        'increase_empathy': {
+            'instruction': 'Make the text warmer and more empathetic. Add understanding, compassion, and acknowledgment of others\' feelings.',
+            'focus': 'empathy and warmth'
+        },
+        'increase_confidence': {
+            'instruction': 'Make the text sound more assertive and self-assured. Replace hedging language with decisive, confident statements.',
+            'focus': 'confidence and assertiveness'
+        },
+        'reduce_neuroticism': {
+            'instruction': 'Reduce emotionally volatile or anxious language. Make the text calmer, more stable, and emotionally balanced.',
+            'focus': 'emotional stability and calmness'
+        },
+        'increase_extraversion': {
+            'instruction': 'Make the text more outgoing, enthusiastic, and socially engaging. Add energy, warmth, and expressiveness.',
+            'focus': 'enthusiasm and social engagement'
+        },
+        'make_concise': {
+            'instruction': 'Shorten and tighten the text. Remove redundancy, filler words, and unnecessary repetition while preserving the full meaning.',
+            'focus': 'brevity and clarity'
+        },
+        'make_friendly': {
+            'instruction': 'Make the text friendlier, more casual, and approachable. Use conversational language and a warm tone.',
+            'focus': 'friendliness and approachability'
+        },
+        'increase_agreeableness': {
+            'instruction': 'Make the text more cooperative, kind, and considerate. Soften critical remarks and add politeness.',
+            'focus': 'kindness and cooperation'
+        },
     }
 
     # Negative words database with alternatives for different goals
@@ -372,11 +404,11 @@ class TextRewriter:
                 improvements.append(f'Replaced "{original_word}" with "{replacement}"')
         
         # Goal-specific additional transformations
-        if goal == 'more_positive' or goal == 'reduce_sadness':
+        if goal in ('more_positive', 'reduce_sadness', 'reduce_fear', 'make_friendly'):
             # Add encouraging phrases if text is short
             if len(rewritten) < 100 and not rewritten.endswith(('!', '.')):
                 rewritten += '.'
-        elif goal == 'more_professional':
+        elif goal in ('more_professional', 'make_concise'):
             # Capitalize first letter and ensure proper punctuation
             if rewritten:
                 rewritten = rewritten[0].upper() + rewritten[1:]

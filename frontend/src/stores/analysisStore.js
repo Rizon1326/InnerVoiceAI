@@ -183,6 +183,62 @@ export const IMPROVEMENT_GOALS = [
     icon: '💼',
     color: 'from-blue-500 to-cyan-500',
   },
+  {
+    id: 'reduce_fear',
+    label: 'Reduce Fear',
+    description: 'Remove anxious and fearful undertones',
+    icon: '💪',
+    color: 'from-blue-500 to-indigo-500',
+  },
+  {
+    id: 'increase_empathy',
+    label: 'Increase Empathy',
+    description: 'Add warmth, compassion, and understanding',
+    icon: '🤗',
+    color: 'from-rose-400 to-pink-500',
+  },
+  {
+    id: 'increase_confidence',
+    label: 'Increase Confidence',
+    description: 'Make text more assertive and self-assured',
+    icon: '🦁',
+    color: 'from-amber-500 to-yellow-500',
+  },
+  {
+    id: 'reduce_neuroticism',
+    label: 'Reduce Neuroticism',
+    description: 'Make text calmer and emotionally stable',
+    icon: '🧘',
+    color: 'from-teal-500 to-cyan-500',
+  },
+  {
+    id: 'increase_extraversion',
+    label: 'Increase Extraversion',
+    description: 'Add enthusiasm, energy, and expressiveness',
+    icon: '🎉',
+    color: 'from-orange-500 to-red-500',
+  },
+  {
+    id: 'make_concise',
+    label: 'Make Concise',
+    description: 'Shorten and tighten without losing meaning',
+    icon: '✂️',
+    color: 'from-gray-500 to-slate-600',
+  },
+  {
+    id: 'make_friendly',
+    label: 'Make Friendly',
+    description: 'More casual, warm, and approachable tone',
+    icon: '👋',
+    color: 'from-lime-500 to-green-500',
+  },
+  {
+    id: 'increase_agreeableness',
+    label: 'Increase Agreeableness',
+    description: 'More cooperative, kind, and considerate',
+    icon: '🤝',
+    color: 'from-emerald-400 to-teal-500',
+  },
 ]
 
 export default useAnalysisStore

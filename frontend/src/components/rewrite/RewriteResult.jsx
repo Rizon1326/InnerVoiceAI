@@ -217,6 +217,15 @@ function getGoalInfo(goalId) {
     reduce_sadness: { label: 'Reduce Sadness', icon: '☀️' },
     more_positive: { label: 'Make More Positive', icon: '😊' },
     more_professional: { label: 'Make Professional', icon: '💼' },
+    reduce_fear: { label: 'Reduce Fear', icon: '💪' },
+    increase_empathy: { label: 'Increase Empathy', icon: '🤗' },
+    increase_confidence: { label: 'Increase Confidence', icon: '🦁' },
+    reduce_neuroticism: { label: 'Reduce Neuroticism', icon: '🧘' },
+    increase_extraversion: { label: 'Increase Extraversion', icon: '🎉' },
+    make_concise: { label: 'Make Concise', icon: '✂️' },
+    make_friendly: { label: 'Make Friendly', icon: '👋' },
+    increase_agreeableness: { label: 'Increase Agreeableness', icon: '🤝' },
+    custom: { label: 'Custom Rewrite', icon: '🛠️' },
   }
   return goals[goalId] || { label: goalId, icon: '✨' }
 }

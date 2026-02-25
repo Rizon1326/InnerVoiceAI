@@ -11,24 +11,65 @@ import { Check, Loader2 } from 'lucide-react'
  * @param {function} onSelect - Callback when goal is selected
  * @param {boolean} isLoading - Loading state
  * @param {Object} emotions - Emotion scores to show relevant suggestions first
+ * @param {Object} personality - OCEAN personality trait scores (0-100)
+ * @param {Object} sentiment - Sentiment data { label, score, scores }
  */
-export function RewriteOptions({ selectedGoal, onSelect, isLoading = false, emotions = {} }) {
-  // Sort goals based on detected emotions (show most relevant first)
+export function RewriteOptions({ selectedGoal, onSelect, isLoading = false, emotions = {}, personality = {}, sentiment = {} }) {
+  // Sort goals based on detected emotions, personality traits, and sentiment
   const sortedGoals = React.useMemo(() => {
     const goals = [...IMPROVEMENT_GOALS]
     
-    // Calculate relevance score for each goal based on detected emotions
+    const sentimentScore = sentiment.score ?? 0
+    const sentimentLabel = sentiment.label || 'neutral'
+    
+    // Calculate relevance score for each goal based on the full analysis
     goals.forEach(goal => {
       let relevance = 0
       
+      // Emotion-based relevance
       if (goal.id === 'reduce_sadness' && emotions.sadness > 0.2) {
         relevance = emotions.sadness * 10
       }
       if (goal.id === 'reduce_aggression' && emotions.anger > 0.2) {
         relevance = emotions.anger * 10
       }
-      if (goal.id === 'more_positive' && (emotions.sadness > 0.2 || emotions.fear > 0.2)) {
-        relevance = Math.max(emotions.sadness || 0, emotions.fear || 0) * 8
+      if (goal.id === 'more_positive' && (emotions.sadness > 0.2 || emotions.fear > 0.2 || sentimentLabel === 'negative')) {
+        relevance = Math.max(emotions.sadness || 0, emotions.fear || 0, sentimentLabel === 'negative' ? 0.6 : 0) * 8
+      }
+      if (goal.id === 'reduce_fear' && emotions.fear > 0.2) {
+        relevance = emotions.fear * 10
+      }
+      if (goal.id === 'increase_confidence' && emotions.fear > 0.15) {
+        relevance = emotions.fear * 7
+      }
+      
+      // Personality-based relevance (personality scores are 0-100)
+      if (goal.id === 'increase_openness' && personality.openness < 40) {
+        relevance = Math.max(relevance, (100 - personality.openness) / 10)
+      }
+      if (goal.id === 'decrease_openness' && personality.openness > 75) {
+        relevance = Math.max(relevance, personality.openness / 12)
+      }
+      if (goal.id === 'reduce_neuroticism' && personality.neuroticism > 60) {
+        relevance = Math.max(relevance, personality.neuroticism / 10)
+      }
+      if (goal.id === 'increase_extraversion' && personality.extraversion < 35) {
+        relevance = Math.max(relevance, (100 - personality.extraversion) / 12)
+      }
+      if (goal.id === 'increase_agreeableness' && personality.agreeableness < 40) {
+        relevance = Math.max(relevance, (100 - personality.agreeableness) / 10)
+      }
+      if (goal.id === 'increase_empathy' && personality.agreeableness < 45) {
+        relevance = Math.max(relevance, (100 - personality.agreeableness) / 12)
+      }
+      
+      // Sentiment-based relevance
+      if (goal.id === 'make_friendly' && sentimentLabel === 'negative') {
+        relevance = Math.max(relevance, Math.abs(sentimentScore) * 5)
+      }
+      if (goal.id === 'more_professional') {
+        // Small baseline relevance — always somewhat useful
+        relevance = Math.max(relevance, 0.5)
       }
       
       goal._relevance = relevance
@@ -36,7 +77,7 @@ export function RewriteOptions({ selectedGoal, onSelect, isLoading = false, emot
     
     // Sort by relevance (higher first), then maintain original order
     return goals.sort((a, b) => b._relevance - a._relevance)
-  }, [emotions])
+  }, [emotions, personality, sentiment])
 
   return (
     <div className="space-y-3">
