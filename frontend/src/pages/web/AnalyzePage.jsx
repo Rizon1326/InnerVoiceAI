@@ -26,6 +26,8 @@ import {
   Heart,
   SmilePlus,
   UserCircle,
+  Copy,
+  Check,
 } from 'lucide-react'
 
 /**
@@ -79,6 +81,7 @@ function AnalyzeContent({ toast }) {
 
   const textValue = watch('text')
   const charCount = textValue?.length || 0
+  const [copiedText, setCopiedText] = React.useState(false)
 
   // Persist text to global store as the user types so it survives route changes
   React.useEffect(() => {
@@ -102,6 +105,15 @@ function AnalyzeContent({ toast }) {
       setAnalysisResult(result)
     }
     navigate('/rewrite')
+  }
+
+  const handleCopyText = () => {
+    if (textValue) {
+      navigator.clipboard.writeText(textValue)
+      setCopiedText(true)
+      setTimeout(() => setCopiedText(false), 2000)
+      toast.success('Copied!', 'Text copied to clipboard.')
+    }
   }
 
   return (
@@ -137,9 +149,18 @@ function AnalyzeContent({ toast }) {
                 Analyze Text
               </Button>
               {result && (
-                <Button type="button" variant="outline" onClick={reset} title="Clear results">
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
+                <>
+                  <Button type="button" variant="outline" onClick={handleCopyText} title="Copy text">
+                    {copiedText ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={reset} title="Clear results">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </>
               )}
             </div>
           </form>
