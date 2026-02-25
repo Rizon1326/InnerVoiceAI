@@ -166,6 +166,7 @@ def rewrite_text(request):
         post_id = request.data.get('post_id')
         goal = request.data.get('goal', request.data.get('style', 'more_positive'))  # Accept both goal and style
         custom_instruction = request.data.get('custom_instruction', '').strip()
+        preferred_language = request.data.get('language', '').strip()  # User-chosen output language
         
         if not text:
             return Response({
@@ -173,8 +174,11 @@ def rewrite_text(request):
                 'error': 'Text required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Get language and detect if needed
-        language = language_detector.detect_language(text)
+        # Use user-preferred language if provided, otherwise auto-detect
+        if preferred_language in ('en', 'bn'):
+            language = preferred_language
+        else:
+            language = language_detector.detect_language(text)
         
         # Get or create analysis
         if post_id:

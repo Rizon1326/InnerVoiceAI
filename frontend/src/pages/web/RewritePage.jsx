@@ -18,7 +18,7 @@ import {
   RewriteResult,
   RewriteResultSkeleton,
 } from '@/components/rewrite'
-import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, Copy, Check, MessageSquarePlus, Send, X } from 'lucide-react'
+import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, Copy, Check, MessageSquarePlus, Send, X, Globe } from 'lucide-react'
 
 /**
  * Dedicated Rewrite Page
@@ -52,6 +52,9 @@ export default function RewritePage() {
   
   // Custom rewrite instruction from user
   const [customInstruction, setCustomInstruction] = React.useState('')
+
+  // Language preference for rewrite output
+  const [rewriteLanguage, setRewriteLanguage] = React.useState('auto') // 'auto' | 'en' | 'bn'
   // Sync edited text with original (only when originalText changes externally)
   React.useEffect(() => {
     setEditedText(originalText)
@@ -102,6 +105,7 @@ export default function RewritePage() {
         goal: goalId,
         style: goalId, // Backend may use style or goal
         custom_instruction: customInstruction.trim() || undefined,
+        language: rewriteLanguage !== 'auto' ? rewriteLanguage : undefined,
       })
 
       // Extract data from response
@@ -139,6 +143,7 @@ export default function RewritePage() {
         goal: 'custom',
         style: 'custom',
         custom_instruction: customInstruction.trim(),
+        language: rewriteLanguage !== 'auto' ? rewriteLanguage : undefined,
       })
 
       const data = response.data || response
@@ -453,7 +458,37 @@ export default function RewritePage() {
                   Choose how you want to transform your text
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Language Selector */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-primary" />
+                    Output Language
+                  </h3>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'auto', label: '🔄 Auto-detect' },
+                      { value: 'en', label: '🇬🇧 English' },
+                      { value: 'bn', label: '🇧🇩 বাংলা' },
+                    ].map((lang) => (
+                      <button
+                        key={lang.value}
+                        type="button"
+                        onClick={() => setRewriteLanguage(lang.value)}
+                        className={`
+                          flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-all duration-200
+                          ${rewriteLanguage === lang.value
+                            ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                            : 'border-border bg-card hover:bg-primary/5 hover:border-primary/40 text-muted-foreground'
+                          }
+                        `}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <RewriteOptions
                   selectedGoal={selectedGoal}
                   onSelect={handleRewrite}
