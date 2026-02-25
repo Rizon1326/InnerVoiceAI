@@ -189,6 +189,132 @@ growth_index = round(
 
 ---
 
+## 5. Sentiment Trend Chart (Area Chart)
+
+### What it shows
+
+The **Sentiment Trend** area chart plots **one data point per day** — each point is the **average sentiment score** of all texts the user analyzed on that specific date. The Y-axis shows the sentiment score and the X-axis shows dates (e.g., Feb 19, Feb 20, …).
+
+Above the chart a **TrendBadge** shows the overall direction (Improving / Declining / Stable) and the **period average** (e.g., `avg: 0.655`).
+
+### Why Feb 22 is the highest point
+
+Looking at your screenshot, Feb 22 has the highest sentiment value (~0.8708). This is **not** a cumulative or running-average value — it is the **simple average of all sentiment scores from posts you analyzed on Feb 22 specifically**.
+
+Here is exactly what happens:
+
+#### Step 1: You analyze one or more texts on a given day
+
+Every time you hit `POST /api/analyze/`, the backend:
+1. Runs the text through the **SentimentAnalyzer** (a `cardiffnlp/twitter-xlm-roberta-base-sentiment` transformer model).
+2. The model returns three probabilities: `positive`, `neutral`, `negative` (summing to ~1.0).
+3. For Bangla/Banglish text, cultural-context adjustments are applied (boosting positive score for words like "দারুণ", "ফাটাফাটি", etc.).
+4. The final **sentiment score** stored in the `Analysis` record is the probability of the dominant label (e.g., if positive=0.87, neutral=0.10, negative=0.03 → `sentiment_score = 0.87`, `sentiment_label = "positive"`).
+
+#### Step 2: Daily progress is updated (`ProgressTracker.update_daily_progress`)
+
+After each analysis, the backend recalculates the **daily average** for that user:
+
+```python
+# Get ALL posts analyzed TODAY by this user
+today_posts = Post.objects.filter(user=user, created_at__date=today)
+analyses = [post.analysis for post in today_posts]
+
+# Average sentiment across all today's posts
+avg_sentiment = sum(a.sentiment_score for a in analyses) / len(analyses)
+```
+
+This creates/updates an `EmotionalProgress` record for today:
+```python
+EmotionalProgress.objects.update_or_create(
+    user=user,
+    date=today,
+    defaults={
+        'avg_sentiment_score': avg_sentiment,
+        'posts_count': len(analyses),
+        ...
+    }
+)
+```
+
+**So if on Feb 22 you analyzed 3 texts with sentiment scores of 0.92, 0.85, and 0.83, the daily average stored would be `(0.92 + 0.85 + 0.83) / 3 = 0.8667`.**
+
+#### Step 3: The chart is built from daily records
+
+The `_sentiment_trend()` method fetches all `EmotionalProgress` records in the period and returns them as `data_points`:
+
+```python
+data_points = [
+    {
+        'date': '2026-02-19',
+        'sentiment': 0.0001,   # avg_sentiment_score for that day
+        'posts': 2,            # how many posts that day
+    },
+    {
+        'date': '2026-02-22',
+        'sentiment': 0.8708,   # ← highest day
+        'posts': 3,
+    },
+    ...
+]
+```
+
+The frontend maps these directly to the chart:
+```javascript
+sentimentChartData = data_points.map(p => ({
+    date: shortDate(p.date),  // "Feb 22"
+    sentiment: p.sentiment,   // 0.8708
+    posts: p.posts,           // 3
+}))
+```
+
+#### Why Feb 22 is higher than the days around it
+
+| Date | What likely happened | Result |
+|---|---|---|
+| **Feb 19–20** | You analyzed texts that were mostly neutral or mildly positive | Low avg (~0.0001) |
+| **Feb 21** | You analyzed more positive texts | Score rises |
+| **Feb 22** | You analyzed texts that were **very positive** (happy, enthusiastic, praise-filled) → the ML model returned high positive probabilities | **Peak at ~0.8708** |
+| **Feb 23–24** | You analyzed texts with more mixed/neutral sentiment | Score drops back |
+| **Feb 25** | More neutral or mildly negative texts | Score falls further |
+
+The chart shape is entirely driven by **what text you fed the system each day**. Feb 22 simply had the most positive texts on average.
+
+### How the overall direction ("Improving") is determined
+
+Despite the visible decline after Feb 22, the badge says **"Improving"** because it uses **linear regression** across ALL data points in the period:
+
+```python
+scores = [0.0001, -0.0006, 0.0001, 0.8708, 0.05, -0.0001, 0.0007]  # example
+slope = linear_regression_slope(scores)
+# If slope > 0.01 → "improving"
+# If slope < -0.01 → "declining"
+# Otherwise → "stable"
+```
+
+Linear regression fits a **best-fit straight line** through all points. Even though the end (Feb 25) is lower than the peak (Feb 22), the overall slope from Feb 19 → Feb 25 may still be positive because the early days (Feb 19–20) had very low scores. The best-fit line still trends upward overall.
+
+**Visual intuition:**
+```
+        ●  (Feb 22 peak)
+       / \
+      /   \  ●
+     /     ●  \
+    /           ● (Feb 25)
+●  ●
+(Feb 19-20)
+
+Best-fit line: ────────────── (still slopes upward)
+```
+
+The line from bottom-left (low early values) to the right side (moderate values) still has a positive slope, even though the last few days declined from the peak.
+
+### Key insight
+
+> **Each point on the Sentiment Trend chart = the average `sentiment_score` of all texts you analyzed that day.** It is NOT a running/cumulative average. A high point means you analyzed happier texts that day; a low point means more neutral or negative texts.
+
+---
+
 ## Data Flow Summary
 
 ```
