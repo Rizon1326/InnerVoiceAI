@@ -19,7 +19,7 @@ import {
   RewriteResult,
   RewriteResultSkeleton,
 } from '@/components/rewrite'
-import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, Copy, Check } from 'lucide-react'
+import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, Copy, Check, MessageSquarePlus, Send, X } from 'lucide-react'
 
 /**
  * Dedicated Rewrite Page
@@ -50,7 +50,9 @@ export default function RewritePage() {
   const [isEditing, setIsEditing] = React.useState(!originalText)
   // eslint-disable-next-line no-unused-vars
   const [replacementHistory, setReplacementHistory] = React.useState([])
-
+  
+  // Custom rewrite instruction from user
+  const [customInstruction, setCustomInstruction] = React.useState('')
   // Sync edited text with original (only when originalText changes externally)
   React.useEffect(() => {
     setEditedText(originalText)
@@ -86,6 +88,7 @@ export default function RewritePage() {
         text: editedText,
         goal: goalId,
         style: goalId, // Backend may use style or goal
+        custom_instruction: customInstruction.trim() || undefined,
       })
 
       // Extract data from response
@@ -300,6 +303,66 @@ export default function RewritePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Custom Rewrite Instruction */}
+          {hasText && !isEditing && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageSquarePlus className="h-4 w-4 text-primary" />
+                  Custom Rewrite Instruction
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Tell the AI how you want your text rewritten — in English, Bangla, or Banglish
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Textarea
+                      value={customInstruction}
+                      onChange={(e) => setCustomInstruction(e.target.value)}
+                      placeholder='e.g. "increase sadness", "make it formal", "sadness komau", "আরও ইতিবাচক করো"...'
+                      className="min-h-[80px] resize-none pr-10 text-sm"
+                    />
+                    {customInstruction && (
+                      <button
+                        onClick={() => setCustomInstruction('')}
+                        className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Clear instruction"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {customInstruction.trim() && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+                      <Send className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <p className="text-xs text-primary">
+                        Your instruction will be applied when you select an improvement goal
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: 'Increase sadness', value: 'increase sadness' },
+                      { label: 'আরও ইতিবাচক', value: 'আরও ইতিবাচক করো' },
+                      { label: 'Make formal', value: 'make it more formal and professional' },
+                      { label: 'Sadness komau', value: 'sadness komau' },
+                    ].map((chip) => (
+                      <button
+                        key={chip.value}
+                        onClick={() => setCustomInstruction(chip.value)}
+                        className="px-2.5 py-1 text-[11px] rounded-full border border-border bg-card hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Suggestions */}
           {hasText && !rewriteResult && (

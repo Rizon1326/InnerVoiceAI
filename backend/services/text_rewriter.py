@@ -223,8 +223,8 @@ class TextRewriter:
         detected.sort(key=lambda x: x['start'])
         return detected
     
-    def rewrite(self, text, analysis_data, language='en', goal='more_positive'):
-        """Rewrite text based on the specified improvement goal"""
+    def rewrite(self, text, analysis_data, language='en', goal='more_positive', custom_instruction=''):
+        """Rewrite text based on the specified improvement goal and optional custom instruction"""
         
         # Detect negative words first
         detected_words = self.detect_negative_words(text)
@@ -239,11 +239,23 @@ class TextRewriter:
             # Get goal-specific instructions
             goal_info = self.GOAL_INSTRUCTIONS.get(goal, self.GOAL_INSTRUCTIONS['more_positive'])
             
+            # Build custom instruction block if provided
+            custom_instruction_block = ''
+            if custom_instruction:
+                custom_instruction_block = f"""
+            
+            ADDITIONAL USER INSTRUCTION (apply this on top of the goal):
+            "{custom_instruction}"
+            The user may write instructions in English, Bangla, or Banglish (romanized Bangla).
+            Understand and apply their intent regardless of the language they used.
+            """
+            
             prompt = f"""
             You are an expert text rewriter. Rewrite this {language} text with the following specific goal:
             
             GOAL: {goal_info['instruction']}
             FOCUS: {goal_info['focus']}
+            {custom_instruction_block}
             
             Original text: "{text}"
             
