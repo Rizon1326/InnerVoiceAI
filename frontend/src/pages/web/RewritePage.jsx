@@ -19,7 +19,7 @@ import {
   RewriteResult,
   RewriteResultSkeleton,
 } from '@/components/rewrite'
-import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles } from 'lucide-react'
+import { Wand2, ArrowLeft, RefreshCw, FileText, Sparkles, Copy, Check } from 'lucide-react'
 
 /**
  * Dedicated Rewrite Page
@@ -45,15 +45,20 @@ export default function RewritePage() {
   } = useAnalysisStore()
 
   // Local state for text editing
+  // If arriving without text, start in editing mode so the user can type freely
   const [editedText, setEditedText] = React.useState(originalText)
-  const [isEditing, setIsEditing] = React.useState(false)
+  const [isEditing, setIsEditing] = React.useState(!originalText)
   // eslint-disable-next-line no-unused-vars
   const [replacementHistory, setReplacementHistory] = React.useState([])
 
-  // Sync edited text with original
+  // Sync edited text with original (only when originalText changes externally)
   React.useEffect(() => {
     setEditedText(originalText)
     setReplacementHistory([])
+    // If text was set externally (e.g. from Analyze page), exit editing mode
+    if (originalText) {
+      setIsEditing(false)
+    }
   }, [originalText])
 
   // Extract emotions for suggestions
@@ -142,19 +147,48 @@ export default function RewritePage() {
    * Toggle edit mode
    */
   const toggleEditMode = () => {
-    setIsEditing(!isEditing)
+    if (!isEditing) {
+      setIsEditing(true)
+    }
   }
 
   /**
    * Save edited text
    */
   const saveEditedText = () => {
-    setOriginalText(editedText)
-    setIsEditing(false)
-    clearRewrite()
+    if (editedText && editedText.trim().length > 0) {
+      setOriginalText(editedText)
+      setIsEditing(false)
+      clearRewrite()
+    }
   }
 
-  const hasText = editedText && editedText.length > 0
+  /**
+   * Cancel editing and revert to original text
+   */
+  const cancelEditing = () => {
+    setEditedText(originalText)
+    // If there was no original text, stay in editing mode
+    if (originalText) {
+      setIsEditing(false)
+    }
+  }
+
+  // State for copy button of original text
+  const [copiedOriginal, setCopiedOriginal] = React.useState(false)
+
+  /**
+   * Copy original text to clipboard
+   */
+  const handleCopyOriginal = () => {
+    navigator.clipboard.writeText(editedText)
+    setCopiedOriginal(true)
+    setTimeout(() => setCopiedOriginal(false), 2000)
+    toast.success('Copied!', 'Original text copied to clipboard.')
+  }
+
+  // hasText is true when text has been committed (saved) - controls showing improvement goals
+  const hasText = originalText && originalText.length > 0
   const hasAnalysis = analysisResult !== null
 
   return (
@@ -212,7 +246,7 @@ export default function RewritePage() {
               </div>
             </CardHeader>
             <CardContent>
-              {isEditing || !hasText ? (
+              {isEditing ? (
                 <div className="space-y-4">
                   <Textarea
                     value={editedText}
@@ -224,25 +258,45 @@ export default function RewritePage() {
                     <span className="text-xs text-muted-foreground">
                       {editedText.length} characters
                     </span>
-                    {isEditing && (
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={saveEditedText}>
-                          Save Changes
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={saveEditedText} disabled={!editedText || editedText.trim().length === 0}>
+                        Save Changes
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <HighlightedText
-                  text={editedText}
-                  flaggedWords={flaggedWords}
-                  emotions={emotions}
-                  onWordReplace={handleWordReplace}
-                />
+                <div className="space-y-3">
+                  <HighlightedText
+                    text={editedText}
+                    flaggedWords={flaggedWords}
+                    emotions={emotions}
+                    onWordReplace={handleWordReplace}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyOriginal}
+                      className="gap-2 text-muted-foreground"
+                    >
+                      {copiedOriginal ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          Copy Text
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -312,7 +366,7 @@ export default function RewritePage() {
           )}
 
           {/* Empty State */}
-          {!hasText && (
+          {!hasText && !isEditing && (
             <Card>
               <CardContent className="py-12">
                 <div className="text-center">
@@ -329,6 +383,23 @@ export default function RewritePage() {
                       Go to Analysis
                     </Button>
                   </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Hint when user is typing but hasn't saved yet */}
+          {!hasText && isEditing && (
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-primary/50" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Enter Your Text</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Type or paste your text, then click <strong>Save Changes</strong> to see rewrite options
+                  </p>
                 </div>
               </CardContent>
             </Card>
