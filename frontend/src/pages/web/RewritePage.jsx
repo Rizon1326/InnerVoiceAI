@@ -375,17 +375,24 @@ export default function RewritePage() {
                       </button>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {[
-                      { label: 'Increase sadness', value: 'increase sadness' },
-                      { label: 'আরও ইতিবাচক', value: 'আরও ইতিবাচক করো' },
-                      { label: 'Make formal', value: 'make it more formal and professional' },
-                      { label: 'Sadness komau', value: 'sadness komau' },
+                      { label: '😢 Increase sadness', value: 'increase sadness' },
+                      { label: '✨ আরও ইতিবাচক', value: 'আরও ইতিবাচক করো' },
+                      { label: '💼 Make formal', value: 'make it more formal and professional' },
+                      { label: '💬 Sadness komau', value: 'sadness komau' },
                     ].map((chip) => (
                       <button
                         key={chip.value}
                         onClick={() => setCustomInstruction(chip.value)}
-                        className="px-2.5 py-1 text-[11px] rounded-full border border-border bg-card hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary transition-all"
+                        className={`
+                          px-3 py-1.5 text-xs font-medium rounded-lg border
+                          transition-all duration-200 cursor-pointer
+                          ${customInstruction === chip.value
+                            ? 'border-primary bg-primary/15 text-primary shadow-sm shadow-primary/20'
+                            : 'border-border/60 bg-card hover:bg-primary/10 hover:border-primary/40 text-muted-foreground hover:text-primary'
+                          }
+                        `}
                       >
                         {chip.label}
                       </button>
