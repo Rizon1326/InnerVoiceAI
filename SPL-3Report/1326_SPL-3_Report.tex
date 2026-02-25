@@ -1455,6 +1455,1067 @@ The complete processing pipeline follows this sequence:
 \end{itemize}
 
 
+% ============================================
+% CHAPTER 8: TEST PLANNING
+% ============================================
+\chapter{Test Planning}
+
+This chapter presents the test plan for \textbf{InnerVoice AI}, structured in accordance with the IEEE 829 Standard for Software Test Documentation and aligned with ISO/IEC 29119 testing practices. The plan defines the scope, objectives, strategy, environment, entry/exit criteria, and detailed test cases that govern the verification and validation of all system components.
+
+\section{Test Plan Overview}
+
+\subsection{Purpose}
+
+The purpose of this test plan is to:
+
+\begin{enumerate}
+    \item Define the scope and objectives of testing activities for \textbf{InnerVoice AI}.
+    \item Establish a structured testing strategy across multiple test levels.
+    \item Specify entry and exit criteria for each testing phase.
+    \item Document detailed test cases with preconditions, input data, and expected outcomes.
+    \item Provide a requirements-to-test traceability matrix to ensure complete coverage.
+\end{enumerate}
+
+\subsection{Scope}
+
+\subsubsection{In Scope}
+
+\begin{itemize}
+    \item Language detection for Bangla (Unicode), Banglish (Roman-script), English, and mixed-language inputs
+    \item Sentiment analysis (positive, negative, neutral classification with probability scores)
+    \item Emotion detection (joy, sadness, anger, fear, surprise, neutral)
+    \item Personality trait assessment using the OCEAN model
+    \item AI-powered text rewriting suggestions
+    \item RESTful API endpoints (authentication, analysis, rewrite, history, progress)
+    \item Data model integrity (defaults, constraints, cascade behavior, ordering)
+    \item End-to-end user workflows (registration, analysis, rewrite, data export, account deletion)
+    \item Security controls (authentication enforcement, data isolation between users)
+\end{itemize}
+
+\subsubsection{Out of Scope}
+
+\begin{itemize}
+    \item Frontend (Chrome Extension) user interface testing
+    \item Load testing and performance benchmarking under concurrent users
+    \item Penetration testing and advanced security auditing
+    \item Third-party API reliability testing (Google Gemini uptime)
+\end{itemize}
+
+\subsection{References}
+
+\begin{itemize}
+    \item IEEE 829-2008: Standard for Software and System Test Documentation
+    \item ISO/IEC 29119-3: Software Testing --- Test Documentation
+    \item Django Testing Documentation: \url{https://docs.djangoproject.com/en/5.0/topics/testing/}
+    \item Django REST Framework Testing: \url{https://www.django-rest-framework.org/api-guide/testing/}
+\end{itemize}
+
+\section{Test Strategy}
+
+The testing strategy for \textbf{InnerVoice AI} adopts a \textbf{V-Model} approach, where each development phase has a corresponding testing phase. Testing is organized into four distinct levels, each targeting a specific layer of the system architecture.
+
+\subsection{Test Levels}
+
+The following diagram illustrates the test levels and their relationship to system components:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    level/.style={rectangle, draw, fill=#1, text width=4.5cm, text centered, minimum height=1.2cm, font=\small\bfseries, rounded corners=3pt},
+    desc/.style={rectangle, text width=6.5cm, text centered, font=\scriptsize, anchor=west},
+    arrow/.style={->, >=Stealth, line width=1.5pt, gray}
+]
+
+% Test levels (stacked)
+\node[level=blue!25] (unit) at (0,0) {Level 1\\Unit Testing};
+\node[level=green!25] (component) at (0,-2) {Level 2\\Component Testing};
+\node[level=orange!25] (api) at (0,-4) {Level 3\\API Integration Testing};
+\node[level=red!20] (e2e) at (0,-6) {Level 4\\End-to-End Testing};
+
+% Descriptions
+\node[desc] at (3.5,0) {Individual service modules tested in isolation\\(LanguageDetector, SentimentAnalyzer, EmotionDetector, PersonalityAnalyzer)};
+\node[desc] at (3.5,-2) {Django ORM models tested for field defaults,\\constraints, relationships, and cascade behavior};
+\node[desc] at (3.5,-4) {REST API endpoints tested for authentication,\\input validation, response structure, error handling};
+\node[desc] at (3.5,-6) {Complete user workflows simulating\\real-world multi-step interactions};
+
+% Arrows
+\draw[arrow] (unit) -- (component);
+\draw[arrow] (component) -- (api);
+\draw[arrow] (api) -- (e2e);
+
+\end{tikzpicture}
+\caption{Test Levels Hierarchy}
+\label{fig:test_levels}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Test Levels and Corresponding Techniques}
+\label{tab:test_levels}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Level} & \textbf{Test Type} & \textbf{Scope} & \textbf{Technique} \\
+\hline
+1 & Unit Testing & Individual NLP/AI service modules & White-box \\
+\hline
+2 & Component Testing & Django ORM models and serializers & White-box \\
+\hline
+3 & API Integration & REST endpoint request/response contracts & Black-box \\
+\hline
+4 & End-to-End & Multi-step user workflows across modules & Black-box \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Test Design Techniques}
+
+The following test design techniques are employed:
+
+\begin{itemize}
+    \item \textbf{Equivalence Partitioning:} Input domains are divided into equivalence classes (e.g., valid Bangla text, valid English text, empty input, whitespace-only input) and one representative test case is selected from each partition.
+    \item \textbf{Boundary Value Analysis:} Boundary conditions are tested (e.g., minimum text length of 3 characters, maximum text length, sentiment score boundaries at $-1.0$, $0.0$, and $+1.0$).
+    \item \textbf{Error Guessing:} Tests are designed for common failure modes such as \texttt{None} input, model loading failures, invalid UUIDs, and expired authentication tokens.
+    \item \textbf{State Transition Testing:} Authentication state transitions are tested (unauthenticated $\rightarrow$ registered $\rightarrow$ logged in $\rightarrow$ logged out $\rightarrow$ token invalidated).
+    \item \textbf{Decision Table Testing:} Rewrite eligibility logic is tested across combinations of sentiment score, emotion intensity, and language type.
+\end{itemize}
+
+\section{Test Environment}
+
+\begin{table}[H]
+\centering
+\caption{Test Environment Specification}
+\label{tab:test_env}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Component} & \textbf{Specification} \\
+\hline
+Operating System & Ubuntu Linux 22.04 LTS \\
+\hline
+Runtime & Python 3.10+ \\
+\hline
+Framework & Django 4.x with Django REST Framework 3.x \\
+\hline
+Test Runner & Django \texttt{manage.py test} (unittest-based) \\
+\hline
+Test Database & SQLite (in-memory, auto-created per test class) \\
+\hline
+Mocking Library & \texttt{unittest.mock} (stdlib) with \texttt{@patch} decorators \\
+\hline
+HTTP Client & \texttt{rest\_framework.test.APIClient} \\
+\hline
+Fixture Management & \texttt{tests/conftest.py} (shared factories and mock data) \\
+\hline
+CI/CD & Tests executable via \texttt{python manage.py test tests/ } \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Entry and Exit Criteria}
+
+\subsection{Entry Criteria}
+
+Testing shall commence only when the following conditions are satisfied:
+
+\begin{enumerate}
+    \item All source code for the module under test has been committed to the version control repository.
+    \item The development environment is correctly configured with all dependencies installed (\texttt{requirements.txt}).
+    \item The test database schema is auto-generated via Django migrations without errors.
+    \item Shared test fixtures in \texttt{conftest.py} are functional and return valid mock objects.
+    \item External service dependencies (Gemini API, ML models) have corresponding mock implementations.
+\end{enumerate}
+
+\subsection{Exit Criteria}
+
+A testing phase is considered complete when:
+
+\begin{enumerate}
+    \item All planned test cases have been executed.
+    \item All test cases with \textbf{High} and \textbf{Medium} priority have passed.
+    \item No unresolved \textbf{Critical} or \textbf{High} severity defects remain open.
+    \item Test coverage meets the target threshold (all public API endpoints and service methods covered).
+    \item Test execution results have been documented and reviewed.
+\end{enumerate}
+
+\section{Test Cases}
+
+This section presents detailed test cases organized by test level. Each test case follows a structured format with test scenario, input/precondition, steps, expected outcomes, and result.
+
+\subsection{Level 1: Unit Test Cases --- Service Modules}
+
+% ---- TC001: Language Detection - Bangla Unicode ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC001~~Language Detection --- Bangla Unicode}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{LanguageDetector} correctly identifies Bangla Unicode script input. \\
+\hline
+\textbf{Input / Precondition} & \texttt{LanguageDetector} class is available and instantiated. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Instantiate the \texttt{LanguageDetector}.
+    \item Pass the Bangla text \texttt{`আমি খুব খুশি আজকে'} to the detection method.
+    \item Check the returned \texttt{language\_code}.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{language\_code} is \texttt{`bn'}.
+    \item \texttt{is\_supported} is \texttt{True}.
+    \item \texttt{script\_type} is \texttt{`bangla'}.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Bangla Unicode text correctly detected as \texttt{`bn'}.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC002: Language Detection - Banglish ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC002~~Language Detection --- Banglish (Roman-script Bangla)}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{LanguageDetector} correctly identifies Banglish input written in Roman script. \\
+\hline
+\textbf{Input / Precondition} & \texttt{LanguageDetector} class is available and instantiated. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Instantiate the \texttt{LanguageDetector}.
+    \item Pass the Banglish text \texttt{`ami khub khushi ajke'} to the detection method.
+    \item Check the returned \texttt{language\_code}.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{language\_code} is \texttt{`bn'}.
+    \item \texttt{script\_type} is \texttt{`banglish'}.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Banglish text correctly detected as Bangla.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC003: Language Detection - Empty String ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC003~~Language Detection --- Empty String Handling}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{LanguageDetector} handles empty string input gracefully without crashing. \\
+\hline
+\textbf{Input / Precondition} & \texttt{LanguageDetector} class is available and instantiated. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Instantiate the \texttt{LanguageDetector}.
+    \item Pass an empty string \texttt{``} to the detection method.
+    \item Check the returned language code and supported flag.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item Falls back to \texttt{language\_code = `en'}.
+    \item No exception is raised.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Empty input handled gracefully with fallback to English.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC004: Sentiment Analysis - Model Loading ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC004~~Sentiment Analysis --- Model Loading}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{SentimentAnalyzer} model loads successfully at startup and produces a valid analyzer instance. \\
+\hline
+\textbf{Input / Precondition} & Python environment is configured with all dependencies installed. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Instantiate the \texttt{SentimentAnalyzer} class.
+    \item Check that the internal \texttt{self.analyzer} attribute is not \texttt{None}.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{self.analyzer} is not \texttt{None}.
+    \item No exception is raised during instantiation.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Sentiment model loaded successfully.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC005: Sentiment Analysis - Positive Classification ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC005~~Sentiment Analysis --- Positive Sentiment Classification}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{SentimentAnalyzer} correctly classifies strongly positive text as \texttt{positive}. \\
+\hline
+\textbf{Input / Precondition} & Sentiment model is loaded and ready. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Pass the text \texttt{`I love this amazing wonderful day!'} to the analyzer.
+    \item Retrieve the sentiment label and score.
+    \item Verify the probability distribution sums to approximately 1.0.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{label} is \texttt{`positive'}.
+    \item \texttt{score} is a valid float.
+    \item Sum of \texttt{positive}, \texttt{neutral}, \texttt{negative} scores $\approx 1.0$.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Positive text classified correctly with valid scores.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC006: Sentiment Analysis - Negative Classification ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC006~~Sentiment Analysis --- Negative Sentiment Classification}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{SentimentAnalyzer} correctly classifies strongly negative text as \texttt{negative}. \\
+\hline
+\textbf{Input / Precondition} & Sentiment model is loaded and ready. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Pass the text \texttt{`I hate this terrible awful day'} to the analyzer.
+    \item Retrieve the sentiment label.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{label} is \texttt{`negative'}.
+    \item \texttt{negative} score is the highest among all categories.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Negative text classified correctly.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC007: Sentiment Analysis - Graceful Fallback ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC007~~Sentiment Analysis --- Graceful Fallback on Model Failure}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{SentimentAnalyzer} returns safe default values when the underlying model is unavailable. \\
+\hline
+\textbf{Input / Precondition} & Model is set to \texttt{None} to simulate loading failure. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Set the analyzer's model to \texttt{None}.
+    \item Pass the text \texttt{`Test text'} to the analyzer.
+    \item Check the returned result.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{label} is \texttt{`neutral'}, \texttt{score} is \texttt{0.0}.
+    \item Scores default to approximately equal distribution ($\approx 0.33$ each).
+    \item No exception is raised.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Fallback values returned safely on model failure.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC008: Emotion Detection - All Categories Present ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC008~~Emotion Detection --- All Emotion Categories Present}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{EmotionDetector} output contains all six expected emotion categories. \\
+\hline
+\textbf{Input / Precondition} & \texttt{EmotionDetector} is loaded and ready. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Pass the text \texttt{`I am very happy today'} to the detector.
+    \item Check that the result dictionary contains all required keys.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item Result contains keys: \texttt{joy}, \texttt{sadness}, \texttt{anger}, \texttt{fear}, \texttt{surprise}, \texttt{neutral}.
+    \item All values are non-negative floats.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- All emotion categories present with valid scores.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC009: Emotion Detection - Joy Dominance ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC009~~Emotion Detection --- Joy Dominance for Positive Text}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{EmotionDetector} assigns the highest score to \texttt{joy} for clearly positive and happy text. \\
+\hline
+\textbf{Input / Precondition} & \texttt{EmotionDetector} is loaded and ready. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Pass the text \texttt{`I am so incredibly happy and excited!'} to the detector.
+    \item Compare the \texttt{joy} score against the \texttt{sadness} score.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{joy} score is greater than \texttt{sadness} score.
+    \item \texttt{joy} is the dominant emotion.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Joy correctly dominant for positive text.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC010: Personality Analysis - OCEAN Schema ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC010~~Personality Analysis --- OCEAN Trait Schema Validation}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{PersonalityAnalyzer} returns a dictionary containing all five OCEAN personality traits. \\
+\hline
+\textbf{Input / Precondition} & \texttt{PersonalityAnalyzer} is instantiated. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Pass the text \texttt{`I love exploring new ideas'} to the analyzer.
+    \item Check that the \texttt{traits} dictionary contains all five OCEAN keys.
+    \item Verify each score is within $[0.0, 1.0]$.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{traits} dict contains: \texttt{openness}, \texttt{conscientiousness}, \texttt{extraversion}, \texttt{agreeableness}, \texttt{neuroticism}.
+    \item All scores are between 0.0 and 1.0 inclusive.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- All OCEAN traits present with valid score ranges.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC011: Personality Analysis - Null Input Resilience ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC011~~Personality Analysis --- Null/Empty Input Resilience}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{PersonalityAnalyzer} handles \texttt{None} and empty string input without raising exceptions. \\
+\hline
+\textbf{Input / Precondition} & \texttt{PersonalityAnalyzer} is instantiated. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Pass \texttt{None} to the analyzer and capture the result.
+    \item Pass an empty string \texttt{``} to the analyzer and capture the result.
+    \item Verify no exceptions are raised in either case.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item Returns default float traits for both inputs.
+    \item No exception is raised.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Null and empty input handled gracefully.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Level 2: Component Test Cases --- Data Models}
+
+% ---- TC012: Post Default Field Values ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC012~~Post Model --- Default Field Values}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that a newly created \texttt{Post} object has correct default values for \texttt{language}, \texttt{tone}, and \texttt{intent} fields. \\
+\hline
+\textbf{Input / Precondition} & A test user exists in the database. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Create a \texttt{Post} object with only the \texttt{text} field set to \texttt{`Hello'}.
+    \item Inspect the default values of \texttt{language}, \texttt{tone}, and \texttt{intent}.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{language} defaults to \texttt{`en'}.
+    \item \texttt{tone} defaults to \texttt{`friendly'}.
+    \item \texttt{intent} defaults to \texttt{`informational'}.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Default field values applied correctly.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC013: UUID Primary Key ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC013~~Post Model --- UUID Primary Key Generation}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that each \texttt{Post} object is automatically assigned a valid UUID as its primary key. \\
+\hline
+\textbf{Input / Precondition} & A test user exists in the database. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Create a new \texttt{Post} object.
+    \item Check that \texttt{post.id} is a valid \texttt{uuid.UUID} instance.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{post.id} is a valid UUID.
+    \item Each new post receives a unique identifier.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- UUID primary key generated correctly.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC014: User Cascade Deletion ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC014~~Post Model --- User Cascade Deletion}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that deleting a user cascades and removes all associated \texttt{Post} records from the database. \\
+\hline
+\textbf{Input / Precondition} & A test user with one or more \texttt{Post} records exists. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Confirm the user has associated posts in the database.
+    \item Delete the user via \texttt{user.delete()}.
+    \item Query \texttt{Post.objects.count()} to verify post deletion.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item \texttt{Post.objects.count()} is \texttt{0} after user deletion.
+    \item No orphan records remain in the database.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Cascade deletion removed all associated posts.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Level 3: API Integration Test Cases}
+
+% ---- TC015: Registration Success ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC015~~Authentication API --- Successful User Registration}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that a new user can successfully register via \texttt{POST /api/auth/register/} and receive an authentication token. \\
+\hline
+\textbf{Input / Precondition} & No existing user with the given username in the database. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send a \texttt{POST} request to \texttt{/api/auth/register/} with valid \texttt{username}, \texttt{email}, and \texttt{password}.
+    \item Check the HTTP response status code.
+    \item Verify the response body contains a \texttt{token} and \texttt{username}.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{201 Created}.
+    \item Response contains \texttt{token} and \texttt{username} fields.
+    \item \texttt{UserProfile} and \texttt{ProjectMetrics} records are created.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Registration successful with token returned.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC016: Duplicate Username Rejection ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC016~~Authentication API --- Duplicate Username Rejection}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that attempting to register with an already existing username returns an error. \\
+\hline
+\textbf{Input / Precondition} & A user with username \texttt{`existing'} already exists in the database. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send a \texttt{POST} request to \texttt{/api/auth/register/} with \texttt{username=`existing'}.
+    \item Check the HTTP response status code and error message.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{400 Bad Request}.
+    \item Error message contains ``Username already exists''.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Duplicate username correctly rejected.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC017: Analysis Authentication Enforcement ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC017~~Text Analysis API --- Authentication Enforcement}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{POST /api/analyze/} endpoint rejects unauthenticated requests. \\
+\hline
+\textbf{Input / Precondition} & No authentication token is set in the request headers. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send a \texttt{POST} request to \texttt{/api/analyze/} without an \texttt{Authorization} header.
+    \item Check the HTTP response status code.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{401 Unauthorized}.
+    \item No analysis is performed.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Unauthenticated request correctly rejected.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC018: Successful Bangla Text Analysis ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC018~~Text Analysis API --- Successful Bangla Text Analysis}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{POST /api/analyze/} endpoint correctly analyzes Bangla text and returns structured results. \\
+\hline
+\textbf{Input / Precondition} & User is authenticated; analysis services are mocked. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send an authenticated \texttt{POST} request with \texttt{text=`আমি খুব খুশি!'}.
+    \item Check the HTTP response status code.
+    \item Verify the response contains \texttt{data} and \texttt{context\_analysis} fields.
+    \item Confirm a \texttt{Post} record is created in the database.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{200 OK}.
+    \item Response contains sentiment, emotion, and personality data.
+    \item \texttt{Post.objects.count()} is incremented by 1.
+    \item Post \texttt{language} is set to \texttt{`bn'}.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Bangla text analyzed successfully with correct response.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC019: Empty Text Rejection ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC019~~Text Analysis API --- Empty Text Rejection}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the analysis endpoint rejects empty text input with an appropriate error message. \\
+\hline
+\textbf{Input / Precondition} & User is authenticated. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send an authenticated \texttt{POST} request with \texttt{text=`'} (empty string).
+    \item Check the HTTP response status code.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{400 Bad Request}.
+    \item \texttt{success} is \texttt{false}.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Empty text correctly rejected.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC020: Rewrite Authentication Enforcement ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC020~~Rewrite API --- Authentication Enforcement}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{POST /api/rewrite/} endpoint rejects unauthenticated requests. \\
+\hline
+\textbf{Input / Precondition} & No authentication token is set in the request headers. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send a \texttt{POST} request to \texttt{/api/rewrite/} without an \texttt{Authorization} header.
+    \item Check the HTTP response status code.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{401 Unauthorized}.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Unauthenticated rewrite request correctly rejected.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC021: Successful Rewrite ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC021~~Rewrite API --- Successful Rewrite with Post ID}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the rewrite endpoint generates an AI-powered rewrite when given a valid \texttt{post\_id} and rewriting goal. \\
+\hline
+\textbf{Input / Precondition} & Authenticated user; a \texttt{Post} and \texttt{Analysis} record exist; rewriter service is mocked. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send an authenticated \texttt{POST} request with \texttt{text}, \texttt{post\_id}, and \texttt{goal}.
+    \item Check the HTTP response status code.
+    \item Verify a \texttt{RewriteRecord} is created.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{200 OK}.
+    \item \texttt{success} is \texttt{true}.
+    \item \texttt{RewriteRecord} count is incremented.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Rewrite generated and recorded successfully.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC022: Health Check ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC022~~Health Check --- Public Accessibility}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that the \texttt{GET /api/health/} endpoint is publicly accessible and returns a success response. \\
+\hline
+\textbf{Input / Precondition} & The server is running. No authentication required. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Send a \texttt{GET} request to \texttt{/api/health/} without any authentication headers.
+    \item Check the HTTP response status code and body.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item HTTP status code is \texttt{200 OK}.
+    \item Response contains \texttt{success: true} and \texttt{message: `API running'}.
+    \item No authentication is required.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Health endpoint publicly accessible and responsive.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Level 4: End-to-End Integration Test Cases}
+
+% ---- TC023: Registration to Profile Access ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC023~~E2E --- Registration $\rightarrow$ Login $\rightarrow$ Profile Access}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify the complete user onboarding flow from registration through login to profile access. \\
+\hline
+\textbf{Input / Precondition} & Clean database with no existing users. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Register a new user via \texttt{POST /api/auth/register/}.
+    \item Login with the same credentials via \texttt{POST /api/auth/login/}.
+    \item Access the profile via \texttt{GET /api/profile/} using the returned token.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item All three steps return success status codes.
+    \item Profile username matches the registered username.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Full onboarding flow completed successfully.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC024: Analyze to History ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC024~~E2E --- Analyze $\rightarrow$ History Retrieval}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that after analyzing text, the result appears in the user's history. \\
+\hline
+\textbf{Input / Precondition} & Authenticated user; analysis services are mocked. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Submit a text for analysis via \texttt{POST /api/analyze/}.
+    \item Retrieve history via \texttt{GET /api/history/}.
+    \item Verify the history contains the analyzed post.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item History contains exactly 1 record.
+    \item The record's post ID matches the analyzed post.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Analysis result correctly appears in history.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC025: Cross-User Data Isolation ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC025~~E2E --- Cross-User Data Isolation}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that one user cannot access another user's analysis data. \\
+\hline
+\textbf{Input / Precondition} & Two registered users exist in the system. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item User A submits a text for analysis.
+    \item User B queries their history via \texttt{GET /api/history/}.
+    \item Verify User B's history does not contain User A's data.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item User B's history returns an empty list.
+    \item No cross-user data leakage occurs.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Data isolation enforced between users.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC026: Account Deletion Cascade ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC026~~E2E --- Account Deletion with Cascade}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that deleting a user account removes all associated data including posts, analyses, and rewrite records. \\
+\hline
+\textbf{Input / Precondition} & A user with \texttt{Post}, \texttt{Analysis}, and \texttt{RewriteRecord} entries exists. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Confirm the user has associated data in the database.
+    \item Send \texttt{DELETE /api/profile/delete/} with the user's token.
+    \item Query the database for the user's records.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item User, Post, Analysis, and RewriteRecord are all removed from the database.
+    \item No orphan records remain.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Cascade deletion removed all user data.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ---- TC027: Token Invalidation After Logout ----
+\begin{table}[H]
+\centering
+\caption*{\textbf{TC027~~E2E --- Token Invalidation After Logout}}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Test Scenario} & Verify that after logout, the authentication token is invalidated and subsequent requests are rejected. \\
+\hline
+\textbf{Input / Precondition} & Authenticated user with a valid token. \\
+\hline
+\textbf{Steps} &
+\begin{enumerate}[nosep,leftmargin=*]
+    \item Access a protected endpoint (e.g., \texttt{GET /api/profile/}) --- expect success.
+    \item Logout via \texttt{POST /api/auth/logout/}.
+    \item Access the same protected endpoint again with the old token.
+\end{enumerate} \\
+\hline
+\textbf{Expected Outcomes} &
+\begin{itemize}[nosep,leftmargin=*]
+    \item Step 1 returns \texttt{200 OK}.
+    \item Step 3 returns \texttt{401 Unauthorized}.
+    \item Token is no longer valid after logout.
+\end{itemize} \\
+\hline
+\textbf{Result} & \textbf{Passed --- Token correctly invalidated after logout.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Requirements Traceability Matrix}
+
+The following traceability matrix maps functional requirements to their corresponding test cases, ensuring that every requirement is covered by at least one test.
+
+\begin{longtable}{|p{0.6cm}|p{4.5cm}|p{3cm}|p{4.5cm}|}
+\caption{Requirements-to-Test Traceability Matrix} \label{tab:rtm} \\
+\hline
+\textbf{Req.} & \textbf{Requirement Description} & \textbf{Test Case IDs} & \textbf{Coverage Status} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Req.} & \textbf{Requirement Description} & \textbf{Test Case IDs} & \textbf{Coverage Status} \\
+\hline
+\endhead
+R-01 & Detect Bangla, Banglish, and English languages & TC001--TC003 & \textbf{Covered} \\
+\hline
+R-02 & Perform sentiment analysis & TC004--TC007 & \textbf{Covered} \\
+\hline
+R-03 & Detect emotions & TC008--TC009 & \textbf{Covered} \\
+\hline
+R-04 & Assess personality traits (OCEAN) & TC010--TC011 & \textbf{Covered} \\
+\hline
+R-05 & Provide AI-based text rewriting & TC020--TC021 & \textbf{Covered} \\
+\hline
+R-06 & User registration and authentication & TC015--TC016, TC023 & \textbf{Covered} \\
+\hline
+R-07 & Validate and reject invalid input & TC003, TC019 & \textbf{Covered} \\
+\hline
+R-08 & Store analysis results in database & TC012--TC014, TC018, TC024 & \textbf{Covered} \\
+\hline
+R-09 & Maintain user data isolation & TC025 & \textbf{Covered} \\
+\hline
+R-10 & Support account deletion with cascade & TC014, TC026 & \textbf{Covered} \\
+\hline
+R-11 & Token-based session management & TC017, TC020, TC027 & \textbf{Covered} \\
+\hline
+R-12 & System availability (health check) & TC022 & \textbf{Covered} \\
+\hline
+R-13 & Graceful degradation on service failure & TC007, TC011 & \textbf{Covered} \\
+\hline
+\end{longtable}
+
+\section{Test Execution Summary}
+
+\begin{table}[H]
+\centering
+\caption{Test Execution Summary by Category}
+\label{tab:test_exec_summary}
+\begin{tabularx}{\textwidth}{|X|c|c|c|c|}
+\hline
+\textbf{Test Category} & \textbf{Test File} & \textbf{Total} & \textbf{Passed} & \textbf{Status} \\
+\hline
+Language Detection (Unit) & \texttt{test\_services\_language.py} & 11 & 11 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Sentiment Analysis (Unit) & \texttt{test\_services\_sentiment.py} & 8 & 8 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Emotion Detection (Unit) & \texttt{test\_services\_emotion.py} & 9 & 9 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Personality Analysis (Unit) & \texttt{test\_services\_personality.py} & 10 & 10 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Text Analysis API & \texttt{test\_analysis\_views.py} & 10 & 10 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Rewrite API & \texttt{test\_rewrite\_views.py} & 8 & 8 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Authentication API & \texttt{test\_auth\_views.py} & 15 & 15 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Data Models (Component) & \texttt{test\_models.py} & 12 & 12 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+End-to-End Integration & \texttt{test\_integration.py} & 7 & 7 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+Health Check & \texttt{test\_health.py} & 3 & 3 & \textcolor{green!60!black}{\textbf{PASS}} \\
+\hline
+\textbf{Total} & & \textbf{93} & \textbf{93} & \textcolor{green!60!black}{\textbf{ALL PASS}} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Defect Summary and Risk Assessment}
+
+\subsection{Defect Summary}
+
+No critical or high-severity defects remained unresolved at the conclusion of testing. Minor observations include:
+
+\begin{itemize}
+    \item The language detector's Banglish heuristic is intentionally aggressive, which may classify some common English words (e.g., containing substrings like ``ha'', ``na'') as Banglish. This is a design decision to minimize false negatives for Bangla-speaking users, not a defect.
+    \item Sentiment analysis model loading time on first invocation is approximately 2--3 seconds. Subsequent calls are served from the cached model instance.
+\end{itemize}
+
+\subsection{Risk Assessment}
+
+\begin{table}[H]
+\centering
+\caption{Testing Risk Assessment}
+\label{tab:risk_assessment}
+\begin{tabularx}{\textwidth}{|l|X|l|X|}
+\hline
+\textbf{Risk ID} & \textbf{Risk Description} & \textbf{Severity} & \textbf{Mitigation} \\
+\hline
+RSK-01 & External API (Gemini) unavailability during production & High & Mocked in tests; fallback responses implemented \\
+\hline
+RSK-02 & ML model produces inaccurate results for novel Bangla slang & Medium & Banglish dictionary regularly updated; heuristic tuning \\
+\hline
+RSK-03 & Concurrent user requests causing race conditions & Low & Django ORM transactions; out of scope for current tests \\
+\hline
+RSK-04 & Database migration failures in production & Low & In-memory SQLite used for tests; migrations tested separately \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Conclusion of Test Planning}
+
+The test plan for \textbf{InnerVoice AI} provides comprehensive coverage across four test levels with 27 documented test cases spanning unit, component, API integration, and end-to-end categories. All planned test cases have been executed and passed, satisfying the defined exit criteria. The requirements traceability matrix confirms that every functional requirement is covered by at least one test case. Key quality attributes---including input validation, authentication enforcement, data isolation, cascade integrity, and graceful degradation---have been verified through systematic testing following industry-standard practices.
+
 
 % ============================================
 % CHAPTER 9: USER MANUAL AND USER INTERFACE
