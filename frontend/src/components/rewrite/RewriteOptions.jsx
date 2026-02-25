@@ -86,7 +86,7 @@ export function RewriteOptions({ selectedGoal, onSelect, isLoading = false, emot
         Select Improvement Goal
       </h3>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
         {sortedGoals.map((goal) => (
           <GoalCard
             key={goal.id}
@@ -112,9 +112,9 @@ function GoalCard({ goal, isSelected, isLoading, onClick, isRecommended }) {
       onClick={onClick}
       disabled={isLoading}
       className={cn(
-        'relative flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-200',
+        'relative flex flex-col items-center justify-center p-2.5 rounded-lg border text-center transition-all duration-200',
         'hover:shadow-md hover:border-primary/50 hover:-translate-y-0.5',
-        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1',
         isSelected 
           ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
           : 'border-border bg-card',
@@ -123,28 +123,28 @@ function GoalCard({ goal, isSelected, isLoading, onClick, isRecommended }) {
     >
       {/* Recommended badge */}
       {isRecommended && !isSelected && (
-        <span className="absolute -top-2 -right-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-orange-500 text-white">
-          Suggested
+        <span className="absolute -top-1.5 -right-1.5 px-1.5 py-px text-[8px] font-bold rounded-full bg-orange-500 text-white leading-tight">
+          ★
         </span>
       )}
 
       {/* Selected indicator */}
       {isSelected && (
-        <span className="absolute top-2 right-2">
+        <span className="absolute top-1 right-1">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <Loader2 className="h-3 w-3 animate-spin text-primary" />
           ) : (
-            <Check className="h-4 w-4 text-primary" />
+            <Check className="h-3 w-3 text-primary" />
           )}
         </span>
       )}
 
       {/* Icon */}
-      <span className="text-2xl mb-2">{goal.icon}</span>
+      <span className="text-lg mb-1">{goal.icon}</span>
 
       {/* Label */}
       <span className={cn(
-        'text-sm font-medium',
+        'text-[11px] font-medium leading-tight',
         isSelected && 'text-primary'
       )}>
         {goal.label}
@@ -153,7 +153,7 @@ function GoalCard({ goal, isSelected, isLoading, onClick, isRecommended }) {
       {/* Gradient accent */}
       <div
         className={cn(
-          'absolute bottom-0 left-0 right-0 h-1 rounded-b-xl bg-gradient-to-r opacity-0 transition-opacity',
+          'absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg bg-gradient-to-r opacity-0 transition-opacity',
           goal.color,
           isSelected && 'opacity-100'
         )}
