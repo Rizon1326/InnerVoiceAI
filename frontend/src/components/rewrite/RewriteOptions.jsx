@@ -109,11 +109,6 @@ function GoalCard({ goal, isSelected, isLoading, onClick, isRecommended }) {
         {goal.label}
       </span>
 
-      {/* Description */}
-      <span className="text-xs text-muted-foreground mt-1 line-clamp-2">
-        {goal.description}
-      </span>
-
       {/* Gradient accent */}
       <div
         className={cn(
