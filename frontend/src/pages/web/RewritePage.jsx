@@ -15,7 +15,6 @@ import {
 import {
   HighlightedText,
   RewriteOptions,
-  SuggestionCards,
   RewriteResult,
   RewriteResultSkeleton,
 } from '@/components/rewrite'
@@ -414,19 +413,6 @@ export default function RewritePage() {
                     Press <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Ctrl</kbd> + <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">Enter</kbd> to send · Or pick an improvement goal on the right
                   </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick Suggestions */}
-          {hasText && !rewriteResult && (
-            <Card>
-              <CardContent className="pt-6">
-                <SuggestionCards
-                  emotions={emotions}
-                  onSelect={handleRewrite}
-                  loadingGoal={isRewriting ? selectedGoal : null}
-                />
               </CardContent>
             </Card>
           )}
