@@ -1459,588 +1459,191 @@ The complete processing pipeline follows this sequence:
 % ============================================
 \chapter{Test Planning}
 
-This chapter presents the test plan for \textbf{InnerVoice AI}, structured in accordance with the IEEE 829 Standard for Software Test Documentation and aligned with ISO/IEC 29119 testing practices. The plan defines the scope, objectives, strategy, environment, entry/exit criteria, and detailed test cases that govern the verification and validation of all system components.
+This chapter presents representative test cases for \textbf{InnerVoice AI}, covering unit tests for NLP services, component tests for data models, API integration tests, and end-to-end integration tests. One or two key test cases are selected from each segment to demonstrate coverage.
 
-\section{Test Plan Overview}
+\section{Unit Test Cases}
 
-\subsection{Purpose}
-
-The purpose of this test plan is to:
-
+\textbf{Test Case 1:}\\
+\textbf{Test Scenario:} Detect Bangla Unicode text using the Language Detection Service.\\
+\textbf{Steps:}
 \begin{enumerate}
-    \item Define the scope and objectives of testing activities for \textbf{InnerVoice AI}.
-    \item Establish a structured testing strategy across multiple test levels.
-    \item Specify entry and exit criteria for each testing phase.
-    \item Document detailed test cases with preconditions, input data, and expected outcomes.
-    \item Provide a requirements-to-test traceability matrix to ensure complete coverage.
+    \item Instantiate the \texttt{LanguageDetector} class.
+    \item Call \texttt{detect\_language('আমি খুব খুশি আজকে')}.
+    \item Observe the returned language code.
 \end{enumerate}
+\textbf{Expected Outcome:} The method returns \texttt{language\_code = 'bn'}.\\
+\textbf{Result:} Passed
 
-\subsection{Scope}
+\vspace{0.5cm}
 
-\subsubsection{In Scope}
-
-\begin{itemize}
-    \item Language detection for Bangla (Unicode), Banglish (Roman-script), English, and mixed-language inputs
-    \item Sentiment analysis (positive, negative, neutral classification with probability scores)
-    \item Emotion detection (joy, sadness, anger, fear, surprise, neutral)
-    \item Personality trait assessment using the OCEAN model
-    \item AI-powered text rewriting suggestions
-    \item RESTful API endpoints (authentication, analysis, rewrite, history, progress)
-    \item Data model integrity (defaults, constraints, cascade behavior, ordering)
-    \item End-to-end user workflows (registration, analysis, rewrite, data export, account deletion)
-    \item Security controls (authentication enforcement, data isolation between users)
-\end{itemize}
-
-\subsubsection{Out of Scope}
-
-\begin{itemize}
-    \item Frontend (Chrome Extension) user interface testing
-    \item Load testing and performance benchmarking under concurrent users
-    \item Penetration testing and advanced security auditing
-    \item Third-party API reliability testing (Google Gemini uptime)
-\end{itemize}
-
-\subsection{References}
-
-\begin{itemize}
-    \item IEEE 829-2008: Standard for Software and System Test Documentation
-    \item ISO/IEC 29119-3: Software Testing — Test Documentation
-    \item Django Testing Documentation: \url{https://docs.djangoproject.com/en/5.0/topics/testing/}
-    \item Django REST Framework Testing: \url{https://www.django-rest-framework.org/api-guide/testing/}
-\end{itemize}
-
-\section{Test Strategy}
-
-The testing strategy for \textbf{InnerVoice AI} adopts a \textbf{V-Model} approach, where each development phase has a corresponding testing phase. Testing is organized into four distinct levels, each targeting a specific layer of the system architecture.
-
-\subsection{Test Levels}
-
-The following diagram illustrates the test levels and their relationship to system components:
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    level/.style={rectangle, draw, fill=#1, text width=4.5cm, text centered, minimum height=1.2cm, font=\small\bfseries, rounded corners=3pt},
-    desc/.style={rectangle, text width=6.5cm, text centered, font=\scriptsize, anchor=west},
-    arrow/.style={->, >=Stealth, line width=1.5pt, gray}
-]
-
-% Test levels (stacked)
-\node[level=blue!25] (unit) at (0,0) {Level 1\\Unit Testing};
-\node[level=green!25] (component) at (0,-2) {Level 2\\Component Testing};
-\node[level=orange!25] (api) at (0,-4) {Level 3\\API Integration Testing};
-\node[level=red!20] (e2e) at (0,-6) {Level 4\\End-to-End Testing};
-
-% Descriptions
-\node[desc] at (3.5,0) {Individual service modules tested in isolation\\(LanguageDetector, SentimentAnalyzer, EmotionDetector, PersonalityAnalyzer)};
-\node[desc] at (3.5,-2) {Django ORM models tested for field defaults,\\constraints, relationships, and cascade behavior};
-\node[desc] at (3.5,-4) {REST API endpoints tested for authentication,\\input validation, response structure, error handling};
-\node[desc] at (3.5,-6) {Complete user workflows simulating\\real-world multi-step interactions};
-
-% Arrows
-\draw[arrow] (unit) -- (component);
-\draw[arrow] (component) -- (api);
-\draw[arrow] (api) -- (e2e);
-
-\end{tikzpicture}
-\caption{Test Levels Hierarchy}
-\label{fig:test_levels}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\caption{Test Levels and Corresponding Techniques}
-\label{tab:test_levels}
-\begin{tabularx}{\textwidth}{|l|l|X|l|}
-\hline
-\textbf{Level} & \textbf{Test Type} & \textbf{Scope} & \textbf{Technique} \\
-\hline
-1 & Unit Testing & Individual NLP/AI service modules & White-box \\
-\hline
-2 & Component Testing & Django ORM models and serializers & White-box \\
-\hline
-3 & API Integration & REST endpoint request/response contracts & Black-box \\
-\hline
-4 & End-to-End & Multi-step user workflows across modules & Black-box \\
-\hline
-\end{tabularx}
-\end{table}
-
-\subsection{Test Design Techniques}
-
-The following test design techniques are employed:
-
-\begin{itemize}
-    \item \textbf{Equivalence Partitioning:} Input domains are divided into equivalence classes (e.g., valid Bangla text, valid English text, empty input, whitespace-only input) and one representative test case is selected from each partition.
-    \item \textbf{Boundary Value Analysis:} Boundary conditions are tested (e.g., minimum text length of 3 characters, maximum text length, sentiment score boundaries at $-1.0$, $0.0$, and $+1.0$).
-    \item \textbf{Error Guessing:} Tests are designed for common failure modes such as \texttt{None} input, model loading failures, invalid UUIDs, and expired authentication tokens.
-    \item \textbf{State Transition Testing:} Authentication state transitions are tested (unauthenticated $\rightarrow$ registered $\rightarrow$ logged in $\rightarrow$ logged out $\rightarrow$ token invalidated).
-    \item \textbf{Decision Table Testing:} Rewrite eligibility logic is tested across combinations of sentiment score, emotion intensity, and language type.
-\end{itemize}
-
-\section{Test Environment}
-
-\begin{table}[H]
-\centering
-\caption{Test Environment Specification}
-\label{tab:test_env}
-\begin{tabularx}{\textwidth}{|l|X|}
-\hline
-\textbf{Component} & \textbf{Specification} \\
-\hline
-Operating System & Ubuntu Linux 22.04 LTS \\
-\hline
-Runtime & Python 3.10+ \\
-\hline
-Framework & Django 4.x with Django REST Framework 3.x \\
-\hline
-Test Runner & Django \texttt{manage.py test} (unittest-based) \\
-\hline
-Test Database & SQLite (in-memory, auto-created per test class) \\
-\hline
-Mocking Library & \texttt{unittest.mock} (stdlib) with \texttt{@patch} decorators \\
-\hline
-HTTP Client & \texttt{rest\_framework.test.APIClient} \\
-\hline
-Fixture Management & \texttt{tests/conftest.py} (shared factories and mock data) \\
-\hline
-CI/CD & Tests executable via \texttt{python manage.py test tests/ } \\
-\hline
-\end{tabularx}
-\end{table}
-
-\section{Entry and Exit Criteria}
-
-\subsection{Entry Criteria}
-
-Testing shall commence only when the following conditions are satisfied:
-
+\textbf{Test Case 2:}\\
+\textbf{Test Scenario:} Classify positive English text using the Sentiment Analysis Service.\\
+\textbf{Steps:}
 \begin{enumerate}
-    \item All source code for the module under test has been committed to the version control repository.
-    \item The development environment is correctly configured with all dependencies installed (\texttt{requirements.txt}).
-    \item The test database schema is auto-generated via Django migrations without errors.
-    \item Shared test fixtures in \texttt{conftest.py} are functional and return valid mock objects.
-    \item External service dependencies (Gemini API, ML models) have corresponding mock implementations.
+    \item Instantiate the \texttt{SentimentAnalyzer}.
+    \item Call \texttt{analyze('I love this amazing wonderful day!')}.
+    \item Check the returned label and verify the probability scores sum to approximately 1.0.
 \end{enumerate}
+\textbf{Expected Outcome:} The returned label is \texttt{'positive'} and the sum of all scores is approximately 1.0.\\
+\textbf{Result:} Passed
 
-\subsection{Exit Criteria}
+\vspace{0.5cm}
 
-A testing phase is considered complete when:
-
+\textbf{Test Case 3:}\\
+\textbf{Test Scenario:} Detect joy as the dominant emotion for happy text using the Emotion Detection Service.\\
+\textbf{Steps:}
 \begin{enumerate}
-    \item All planned test cases have been executed.
-    \item All test cases with \textbf{High} and \textbf{Medium} priority have passed.
-    \item No unresolved \textbf{Critical} or \textbf{High} severity defects remain open.
-    \item Test coverage meets the target threshold (all public API endpoints and service methods covered).
-    \item Test execution results have been documented and reviewed.
+    \item Instantiate the \texttt{EmotionDetector}.
+    \item Call \texttt{detect('I am so incredibly happy and excited!')}.
+    \item Verify the result contains all six emotion keys (\texttt{joy}, \texttt{sadness}, \texttt{anger}, \texttt{fear}, \texttt{surprise}, \texttt{neutral}) and that \texttt{joy > sadness}.
 \end{enumerate}
+\textbf{Expected Outcome:} All six emotion keys are present and the joy score is greater than the sadness score.\\
+\textbf{Result:} Passed
 
-\section{Test Cases}
+\vspace{0.5cm}
 
-This section presents detailed test cases organized by test level. Each test case follows the IEEE 829 format with a unique identifier, preconditions, test input, execution steps, expected results, priority, and test type classification.
+\textbf{Test Case 4:}\\
+\textbf{Test Scenario:} Verify OCEAN personality traits output and score range using the Personality Analysis Service.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Instantiate the \texttt{PersonalityAnalyzer}.
+    \item Call \texttt{analyze('I love exploring new ideas and meeting people')}.
+    \item Check that the result contains a \texttt{traits} dictionary with all five OCEAN keys and that every score is within [0.0, 1.0].
+\end{enumerate}
+\textbf{Expected Outcome:} The \texttt{traits} dictionary contains \texttt{openness}, \texttt{conscientiousness}, \texttt{extraversion}, \texttt{agreeableness}, and \texttt{neuroticism}, each with a score between 0.0 and 1.0.\\
+\textbf{Result:} Passed
 
-\subsection{Level 1: Unit Test Cases --- Service Modules}
+\vspace{0.5cm}
 
-\subsubsection{Language Detection Service (\texttt{LanguageDetector})}
+\textbf{Test Case 5:}\\
+\textbf{Test Scenario:} Verify Banglish text detection and normalization using the Bangla Processor Service.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Instantiate the \texttt{BanglaProcessor}.
+    \item Call \texttt{is\_bangla\_or\_banglish('ami valo achi')} and verify it returns \texttt{True}.
+    \item Call \texttt{\_reduce\_repeated\_chars('daruuuuun')} and verify it returns \texttt{'daruun'}.
+\end{enumerate}
+\textbf{Expected Outcome:} Banglish text is correctly detected as Bangla, and repeated characters are normalized.\\
+\textbf{Result:} Passed
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Language Detection Service} \label{tab:tc_lang} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-LD-01 & Detect Bangla Unicode script & \texttt{LanguageDetector} class available & \texttt{`আমি খুব খুশি আজকে'} & \texttt{language\_code = `bn'} & High & +ve \\
-\hline
-TC-LD-02 & Detect Banglish (Roman-script Bangla) & \texttt{LanguageDetector} class available & \texttt{`ami khub khushi ajke'} & \texttt{language\_code = `bn'} & High & +ve \\
-\hline
-TC-LD-03 & Detect social media Bangla slang & \texttt{LanguageDetector} class available & \texttt{`kothin hoise bhai'} & \texttt{language\_code = `bn'} & Med & +ve \\
-\hline
-TC-LD-04 & Handle empty string gracefully & \texttt{LanguageDetector} class available & \texttt{``} (empty) & Fallback: \texttt{`en'} & High & -ve \\
-\hline
-TC-LD-05 & Reject whitespace-only input & \texttt{LanguageDetector} class available & \texttt{`~~~'} (spaces) & \texttt{is\_supported = False} & Med & -ve \\
-\hline
-TC-LD-06 & Return detailed language metadata & \texttt{LanguageDetector} class available & \texttt{`আমি ভালো আছি'} & \texttt{language\_code=`bn'}, \texttt{script\_type} $\in$ \{bangla, banglish, mixed\}, \texttt{is\_supported=True} & Med & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\section{Component Test Cases --- Data Models}
 
-\subsubsection{Sentiment Analysis Service (\texttt{SentimentAnalyzer})}
+\textbf{Test Case 6:}\\
+\textbf{Test Scenario:} Verify Post model default values and UUID primary key.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Create a test user.
+    \item Create a \texttt{Post} with \texttt{text='Hello world'} and no other fields.
+    \item Check that the defaults are \texttt{language='en'}, \texttt{detected\_tone='friendly'}, and that \texttt{post.id} is a valid UUID.
+\end{enumerate}
+\textbf{Expected Outcome:} The Post is created with correct defaults and a UUID primary key.\\
+\textbf{Result:} Passed
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Sentiment Analysis Service} \label{tab:tc_sent} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-SA-01 & Model loads successfully at startup & Python env configured & Class instantiation & \texttt{self.analyzer} $\neq$ \texttt{None} & High & +ve \\
-\hline
-TC-SA-02 & Output schema validation & Model loaded & \texttt{`I am happy'} & Result contains keys: \texttt{label}, \texttt{score}, \texttt{scores\{positive, neutral, negative\}} & High & +ve \\
-\hline
-TC-SA-03 & Probability distribution integrity & Model loaded & \texttt{`Today is a good day'} & $|\sum \texttt{scores} - 1.0| < 0.1$ & High & +ve \\
-\hline
-TC-SA-04 & Positive sentiment classification & Model loaded & \texttt{`I love this amazing wonderful day!'} & \texttt{label = `positive'} & High & +ve \\
-\hline
-TC-SA-05 & Negative sentiment classification & Model loaded & \texttt{`I hate this terrible awful day'} & \texttt{label = `negative'} & High & +ve \\
-\hline
-TC-SA-06 & Bangla text sentiment analysis & Model loaded & \texttt{`আমি খুব খুশি!'}, \texttt{language=`bn'} & Valid label $\in$ \{positive, neutral, negative\}, score $\in \mathbb{R}$ & High & +ve \\
-\hline
-TC-SA-07 & Graceful fallback on model failure & \texttt{model = None} & \texttt{`Test text'} & \texttt{label=`neutral'}, \texttt{score=0.0}, \texttt{scores\{positive $\approx$ 0.33\}} & High & -ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\vspace{0.5cm}
 
-\subsubsection{Emotion Detection Service (\texttt{EmotionDetector})}
+\textbf{Test Case 7:}\\
+\textbf{Test Scenario:} Verify cascade deletion removes all related records when a user is deleted.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Create a test user and a Post for that user.
+    \item Delete the user from the database.
+    \item Count remaining Post records.
+\end{enumerate}
+\textbf{Expected Outcome:} \texttt{Post.objects.count()} equals 0 after user deletion.\\
+\textbf{Result:} Passed
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Emotion Detection Service} \label{tab:tc_emo} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-ED-01 & Output contains all emotion categories & Detector loaded & \texttt{`I am very happy today'} & Keys $\supseteq$ \{joy, sadness, anger, fear, surprise, neutral\} & High & +ve \\
-\hline
-TC-ED-02 & Joy dominance for positive text & Detector loaded & \texttt{`I am so incredibly happy and excited!'} & \texttt{joy > sadness} & High & +ve \\
-\hline
-TC-ED-03 & Sadness detection threshold & Detector loaded & \texttt{`I feel so sad and heartbroken today'} & \texttt{sadness > 0.1} & High & +ve \\
-\hline
-TC-ED-04 & Anger detection threshold & Detector loaded & \texttt{`I am furious and extremely angry!'} & \texttt{anger > 0.1} & High & +ve \\
-\hline
-TC-ED-05 & Bangla emotion detection & Detector loaded & \texttt{`আমি খুব কষ্ট পাচ্ছি'}, \texttt{language=`bn'} & All six emotion keys present with float values & High & +ve \\
-\hline
-TC-ED-06 & Non-negativity constraint & Detector loaded & \texttt{`Random test text'} & $\forall$ score: score $\geq 0.0$ & Med & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\section{API Integration Test Cases}
 
-\subsubsection{Personality Analysis Service (\texttt{PersonalityAnalyzer} --- OCEAN Model)}
+\textbf{Test Case 8:}\\
+\textbf{Test Scenario:} Successful user registration and duplicate username rejection via the Authentication API.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Send a \texttt{POST} to \texttt{/api/auth/register/} with valid \texttt{username}, \texttt{email}, and \texttt{password}. Verify HTTP 201 with a \texttt{token} in the response.
+    \item Send another \texttt{POST} to \texttt{/api/auth/register/} with the same \texttt{username}. Verify HTTP 400 with ``Username already exists''.
+\end{enumerate}
+\textbf{Expected Outcome:} First registration succeeds (201); second registration is rejected (400).\\
+\textbf{Result:} Passed
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Personality Analysis Service} \label{tab:tc_pers} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-PA-01 & OCEAN trait schema validation & Analyzer instantiated & \texttt{`I love exploring new ideas'} & \texttt{traits} dict contains all 5 OCEAN keys & High & +ve \\
-\hline
-TC-PA-02 & Score range constraint & Analyzer instantiated & \texttt{`Test personality text'} & $\forall$ trait: $0.0 \leq$ score $\leq 1.0$ & High & +ve \\
-\hline
-TC-PA-03 & High Extraversion detection & Analyzer instantiated; \texttt{sentiment=0.8}, \texttt{joy=0.7} & Social/enthusiastic text & \texttt{extraversion > 0.5} & Med & +ve \\
-\hline
-TC-PA-04 & High Neuroticism detection & Analyzer instantiated; \texttt{sentiment=-0.7}, \texttt{sadness=0.4} & Negative/anxious text & \texttt{neuroticism > 0.5} & Med & +ve \\
-\hline
-TC-PA-05 & High Agreeableness detection & Analyzer instantiated; \texttt{sentiment=0.7}, \texttt{joy=0.5} & Cooperative/empathetic text & \texttt{agreeableness > 0.5} & Med & +ve \\
-\hline
-TC-PA-06 & High Openness detection & Analyzer instantiated; \texttt{sentiment=0.5}, \texttt{surprise=0.3} & Creative/abstract text & \texttt{openness > 0.5} & Med & +ve \\
-\hline
-TC-PA-07 & Sentiment influence on Neuroticism & Analyzer instantiated & Same text with \texttt{sentiment=+0.9} vs \texttt{sentiment=-0.9} & $N_{\text{negative}} > N_{\text{positive}}$ & High & +ve \\
-\hline
-TC-PA-08 & Null/empty input resilience & Analyzer instantiated & \texttt{None} and \texttt{``} & Returns default float traits; no exception raised & High & -ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\vspace{0.5cm}
 
-\subsection{Level 2: Component Test Cases --- Data Models}
+\textbf{Test Case 9:}\\
+\textbf{Test Scenario:} Successful Bangla text analysis with input validation via the Text Analysis API.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Authenticate as a valid user.
+    \item Send a \texttt{POST} to \texttt{/api/analyze/} with \texttt{text=''} (empty). Verify HTTP 400.
+    \item Send a \texttt{POST} to \texttt{/api/analyze/} with \texttt{text='আমি খুব খুশি আজকে!'} (services mocked). Verify HTTP 200 with \texttt{data} and \texttt{context\_analysis} keys in the response.
+\end{enumerate}
+\textbf{Expected Outcome:} Empty text is rejected with 400; valid Bangla text returns a successful analysis (200).\\
+\textbf{Result:} Passed
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Django ORM Models} \label{tab:tc_model} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-MD-01 & Post default field values & Test user exists & \texttt{Post.create(text= `Hello')} & \texttt{language=`en'}, \texttt{tone=`friendly'}, \texttt{intent=`informational'} & High & +ve \\
-\hline
-TC-MD-02 & UUID primary key generation & Test user exists & Create Post & \texttt{post.id} is valid \texttt{uuid.UUID} instance & High & +ve \\
-\hline
-TC-MD-03 & Chronological ordering & Test user exists; 2 posts created sequentially & Query \texttt{Post.objects.filter(user)} & Latest post (\texttt{p2}) appears at index 0 & Med & +ve \\
-\hline
-TC-MD-04 & User cascade deletion & Test user with 1 post & \texttt{user.delete()} & \texttt{Post.objects.count() == 0} & High & +ve \\
-\hline
-TC-MD-05 & Analysis data integrity & Post with Analysis record & Create Analysis with known values & All sentiment, emotion, and personality fields match input & High & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\vspace{0.5cm}
 
-\subsection{Level 3: API Integration Test Cases}
+\textbf{Test Case 10:}\\
+\textbf{Test Scenario:} Rewrite with valid \texttt{post\_id} and invalid \texttt{post\_id} via the Text Rewriting API.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Authenticate as a valid user. Create a Post and its Analysis record.
+    \item Send a \texttt{POST} to \texttt{/api/rewrite/} with the valid \texttt{post\_id} (TextRewriter mocked). Verify HTTP 200.
+    \item Send a \texttt{POST} to \texttt{/api/rewrite/} with a non-existent \texttt{post\_id} (all zeros). Verify HTTP 404.
+\end{enumerate}
+\textbf{Expected Outcome:} Valid \texttt{post\_id} returns a successful rewrite (200); invalid \texttt{post\_id} returns 404.\\
+\textbf{Result:} Passed
 
-\subsubsection{Authentication Endpoints}
+\vspace{0.5cm}
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Authentication API (\texttt{/api/auth/})} \label{tab:tc_auth} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-AU-01 & Successful user registration & No existing user & \texttt{POST} with valid username, email, password & HTTP 201; response contains \texttt{token} and \texttt{username} & High & +ve \\
-\hline
-TC-AU-02 & Registration side effects & No existing user & \texttt{POST} with valid data & \texttt{UserProfile} and \texttt{ProjectMetrics} records created & High & +ve \\
-\hline
-TC-AU-03 & Missing required field (username) & None & \texttt{POST} without \texttt{username} & HTTP 400; \texttt{success=false} & High & -ve \\
-\hline
-TC-AU-04 & Duplicate username rejection & User `existing' in DB & \texttt{POST} with \texttt{username= `existing'} & HTTP 400; error contains ``Username already exists'' & High & -ve \\
-\hline
-TC-AU-05 & Empty field validation & None & \texttt{POST} with all fields as \texttt{``} & HTTP 400 & Med & -ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\textbf{Test Case 11:}\\
+\textbf{Test Scenario:} Health check endpoint is publicly accessible.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Send a \texttt{GET} request to \texttt{/api/health/} without any authentication token.
+    \item Inspect the response status code and body.
+\end{enumerate}
+\textbf{Expected Outcome:} Response returns HTTP 200 with \texttt{\{success: true, message: 'API running'\}}.\\
+\textbf{Result:} Passed
 
-\subsubsection{Text Analysis Endpoint}
+\section{End-to-End Integration Test Cases}
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Text Analysis API (\texttt{POST /api/analyze/})} \label{tab:tc_analyze} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-AA-01 & Authentication enforcement & No auth token set & \texttt{POST \{text: `Hello'\}} & HTTP 401 Unauthorized & High & -ve \\
-\hline
-TC-AA-02 & Empty text rejection & Authenticated user & \texttt{POST \{text: `'\}} & HTTP 400; \texttt{success=false} & High & -ve \\
-\hline
-TC-AA-03 & Minimum length validation & Authenticated user & \texttt{POST \{text: `ab'\}} & HTTP 400; error contains ``too short'' & Med & -ve \\
-\hline
-TC-AA-04 & Whitespace-only rejection & Authenticated user & \texttt{POST \{text: `~~~'\}} & HTTP 400 & Med & -ve \\
-\hline
-TC-AA-05 & Successful Bangla text analysis & Authenticated user; services mocked & \texttt{POST \{text: `আমি খুব খুশি!'\}} & HTTP 200; response contains \texttt{data} and \texttt{context\_analysis} & High & +ve \\
-\hline
-TC-AA-06 & Database record creation & Authenticated user; services mocked & \texttt{POST} with valid text & \texttt{Post.objects.count()} incremented by 1; \texttt{post.language = `bn'} & High & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\textbf{Test Case 12:}\\
+\textbf{Test Scenario:} Full user journey --- Registration $\rightarrow$ Login $\rightarrow$ Analyze $\rightarrow$ History retrieval.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Send a \texttt{POST} to \texttt{/api/auth/register/} with valid credentials. Verify HTTP 201 and extract the token.
+    \item Send a \texttt{POST} to \texttt{/api/auth/login/} with the same credentials. Verify HTTP 200.
+    \item Send a \texttt{POST} to \texttt{/api/analyze/} with Bangla text (services mocked). Extract the returned \texttt{post\_id}.
+    \item Send a \texttt{GET} to \texttt{/api/history/}. Verify the history contains 1 record matching the analyzed post ID.
+\end{enumerate}
+\textbf{Expected Outcome:} All steps succeed. The history endpoint returns exactly 1 entry whose \texttt{id} matches the analyzed post.\\
+\textbf{Result:} Passed
 
-\subsubsection{Text Rewriting Endpoint}
+\vspace{0.5cm}
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Rewrite API (\texttt{POST /api/rewrite/})} \label{tab:tc_rewrite} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-RW-01 & Authentication enforcement & No auth token & \texttt{POST \{text: `Test'\}} & HTTP 401 & High & -ve \\
-\hline
-TC-RW-02 & Empty text rejection & Authenticated user & \texttt{POST \{text: `'\}} & HTTP 400; error contains ``required'' & High & -ve \\
-\hline
-TC-RW-03 & Rewrite with valid \texttt{post\_id} & Post and Analysis exist; rewriter mocked & \texttt{POST \{text, post\_id, goal\}} & HTTP 200; \texttt{success=true} & High & +ve \\
-\hline
-TC-RW-04 & Invalid \texttt{post\_id} handling & No matching post in DB & \texttt{POST \{post\_id: UUID-zeros\}} & HTTP 404 Not Found & Med & -ve \\
-\hline
-TC-RW-05 & Rewrite without \texttt{post\_id} & Authenticated; all services mocked & \texttt{POST \{text: `I hate everything'\}} & Post, Analysis, and RewriteRecord all created & High & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\textbf{Test Case 13:}\\
+\textbf{Test Scenario:} Cross-user data isolation --- one user cannot see another user's data.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Register and authenticate User A.
+    \item User A creates a post via \texttt{/api/analyze/}.
+    \item Register and authenticate User B.
+    \item User B sends a \texttt{GET} request to \texttt{/api/history/}.
+\end{enumerate}
+\textbf{Expected Outcome:} User B's history response returns an empty list (cannot see User A's data).\\
+\textbf{Result:} Passed
 
-\subsubsection{Health Check Endpoint}
+\vspace{0.5cm}
 
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- Health Check (\texttt{GET /api/health/})} \label{tab:tc_health} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Test Input} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-HC-01 & Service availability & Server running & \texttt{GET /api/health/} & HTTP 200 OK & High & +ve \\
-\hline
-TC-HC-02 & Response schema & Server running & \texttt{GET /api/health/} & \texttt{\{success: true, message: `API running'\}} & Med & +ve \\
-\hline
-TC-HC-03 & Public accessibility & No auth token & \texttt{GET /api/health/} & HTTP 200 (no authentication required) & High & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
+\textbf{Test Case 14:}\\
+\textbf{Test Scenario:} Token invalidation after logout.\\
+\textbf{Steps:}
+\begin{enumerate}
+    \item Authenticate as a user.
+    \item Send a \texttt{GET} to \texttt{/api/profile/}. Verify HTTP 200.
+    \item Send a \texttt{POST} to \texttt{/api/auth/logout/}. Verify success.
+    \item Send a \texttt{GET} to \texttt{/api/profile/} again using the same token.
+\end{enumerate}
+\textbf{Expected Outcome:} The final request returns HTTP 401 Unauthorized (token is no longer valid).\\
+\textbf{Result:} Passed
 
-\subsection{Level 4: End-to-End Integration Test Cases}
-
-\begin{landscape}
-\footnotesize
-\begin{longtable}{|p{1.8cm}|p{4.0cm}|p{3.5cm}|p{4.5cm}|p{5.5cm}|p{1.0cm}|p{1.0cm}|}
-\caption{Test Cases --- End-to-End Integration} \label{tab:tc_e2e} \\
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Steps} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endfirsthead
-\hline
-\textbf{ID} & \textbf{Description} & \textbf{Precondition} & \textbf{Steps} & \textbf{Expected Result} & \textbf{Pri.} & \textbf{Type} \\
-\hline
-\endhead
-TC-IT-01 & Registration $\rightarrow$ Login $\rightarrow$ Profile access & Clean database & 1.~Register \newline 2.~Login \newline 3.~GET profile & All steps return success; profile username matches & High & +ve \\
-\hline
-TC-IT-02 & Analyze $\rightarrow$ History retrieval & Authenticated user & 1.~POST analyze \newline 2.~GET history & History contains 1 record matching the analyzed post ID & High & +ve \\
-\hline
-TC-IT-03 & Analyze $\rightarrow$ Rewrite $\rightarrow$ Record verification & Authenticated; services mocked & 1.~POST analyze \newline 2.~POST rewrite with \texttt{post\_id} & \texttt{RewriteRecord.count() == 1} & High & +ve \\
-\hline
-TC-IT-04 & Multiple analyses accumulation & Authenticated; services mocked & Submit 3 analyses sequentially & \texttt{Post.count() == 3}; \texttt{Analysis.count() == 3} & Med & +ve \\
-\hline
-TC-IT-05 & Cross-user data isolation & Two registered users & User~A creates post; User~B queries history & User~B's history returns empty list & High & +ve \\
-\hline
-TC-IT-06 & Account deletion cascade & User with Post, Analysis, RewriteRecord & \texttt{DELETE /api/profile/delete/} & User, Post, Analysis, and RewriteRecord all removed from DB & High & +ve \\
-\hline
-TC-IT-07 & Token invalidation after logout & Authenticated user & 1.~GET profile (200) \newline 2.~POST logout \newline 3.~GET profile & Step~3 returns HTTP 401 Unauthorized & High & +ve \\
-\hline
-\end{longtable}
-\end{landscape}
-
-\section{Requirements Traceability Matrix}
-
-The following traceability matrix maps functional requirements to their corresponding test cases, ensuring that every requirement is covered by at least one test.
-
-\begin{longtable}{|p{0.6cm}|p{4.5cm}|p{3cm}|p{4.5cm}|}
-\caption{Requirements-to-Test Traceability Matrix} \label{tab:rtm} \\
-\hline
-\textbf{Req.} & \textbf{Requirement Description} & \textbf{Test Case IDs} & \textbf{Coverage Status} \\
-\hline
-\endfirsthead
-\hline
-\textbf{Req.} & \textbf{Requirement Description} & \textbf{Test Case IDs} & \textbf{Coverage Status} \\
-\hline
-\endhead
-R-01 & Detect Bangla, Banglish, and English languages & TC-LD-01 to TC-LD-06 & \textbf{Covered} (6 test cases) \\
-\hline
-R-02 & Perform sentiment analysis (positive, negative, neutral) & TC-SA-01 to TC-SA-07 & \textbf{Covered} (7 test cases) \\
-\hline
-R-03 & Detect emotions (joy, sadness, anger, fear, surprise) & TC-ED-01 to TC-ED-06 & \textbf{Covered} (6 test cases) \\
-\hline
-R-04 & Assess personality traits using OCEAN model & TC-PA-01 to TC-PA-08 & \textbf{Covered} (8 test cases) \\
-\hline
-R-05 & Provide AI-based text rewriting suggestions & TC-RW-01 to TC-RW-05, TC-IT-03 & \textbf{Covered} (6 test cases) \\
-\hline
-R-06 & User registration and authentication & TC-AU-01 to TC-AU-05, TC-IT-01 & \textbf{Covered} (6 test cases) \\
-\hline
-R-07 & Validate and reject invalid input & TC-AA-02 to TC-AA-04, TC-RW-02, TC-LD-04, TC-LD-05 & \textbf{Covered} (6 test cases) \\
-\hline
-R-08 & Store analysis results in database & TC-AA-06, TC-MD-01 to TC-MD-05, TC-IT-04 & \textbf{Covered} (7 test cases) \\
-\hline
-R-09 & Maintain user data isolation & TC-IT-05 & \textbf{Covered} (1 test case) \\
-\hline
-R-10 & Support account deletion with cascade & TC-IT-06, TC-MD-04 & \textbf{Covered} (2 test cases) \\
-\hline
-R-11 & Token-based session management & TC-IT-07, TC-AA-01, TC-RW-01 & \textbf{Covered} (3 test cases) \\
-\hline
-R-12 & System availability (health check) & TC-HC-01 to TC-HC-03 & \textbf{Covered} (3 test cases) \\
-\hline
-R-13 & Graceful degradation on service failure & TC-SA-07, TC-PA-08 & \textbf{Covered} (2 test cases) \\
-\hline
-\end{longtable}
-
-\section{Test Execution Summary}
-
-\begin{table}[H]
-\centering
-\caption{Test Execution Summary by Category}
-\label{tab:test_exec_summary}
-\begin{tabularx}{\textwidth}{|X|c|c|c|c|}
-\hline
-\textbf{Test Category} & \textbf{Test File} & \textbf{Total} & \textbf{Passed} & \textbf{Status} \\
-\hline
-Language Detection (Unit) & \texttt{test\_services\_language.py} & 11 & 11 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Sentiment Analysis (Unit) & \texttt{test\_services\_sentiment.py} & 8 & 8 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Emotion Detection (Unit) & \texttt{test\_services\_emotion.py} & 9 & 9 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Personality Analysis (Unit) & \texttt{test\_services\_personality.py} & 10 & 10 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Text Analysis API & \texttt{test\_analysis\_views.py} & 10 & 10 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Rewrite API & \texttt{test\_rewrite\_views.py} & 8 & 8 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Authentication API & \texttt{test\_auth\_views.py} & 15 & 15 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Data Models (Component) & \texttt{test\_models.py} & 12 & 12 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-End-to-End Integration & \texttt{test\_integration.py} & 7 & 7 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-Health Check & \texttt{test\_health.py} & 3 & 3 & \textcolor{green!60!black}{\textbf{PASS}} \\
-\hline
-\textbf{Total} & & \textbf{93} & \textbf{93} & \textcolor{green!60!black}{\textbf{ALL PASS}} \\
-\hline
-\end{tabularx}
-\end{table}
-
-\section{Defect Summary and Risk Assessment}
-
-\subsection{Defect Summary}
-
-No critical or high-severity defects remained unresolved at the conclusion of testing. Minor observations include:
-
-\begin{itemize}
-    \item The language detector's Banglish heuristic is intentionally aggressive, which may classify some common English words (e.g., containing substrings like ``ha'', ``na'') as Banglish. This is a design decision to minimize false negatives for Bangla-speaking users, not a defect.
-    \item Sentiment analysis model loading time on first invocation is approximately 2--3 seconds. Subsequent calls are served from the cached model instance.
-\end{itemize}
-
-\subsection{Risk Assessment}
-
-\begin{table}[H]
-\centering
-\caption{Testing Risk Assessment}
-\label{tab:risk_assessment}
-\begin{tabularx}{\textwidth}{|l|X|l|X|}
-\hline
-\textbf{Risk ID} & \textbf{Risk Description} & \textbf{Severity} & \textbf{Mitigation} \\
-\hline
-RSK-01 & External API (Gemini) unavailability during production & High & Mocked in tests; fallback responses implemented \\
-\hline
-RSK-02 & ML model produces inaccurate results for novel Bangla slang & Medium & Banglish dictionary regularly updated; heuristic tuning \\
-\hline
-RSK-03 & Concurrent user requests causing race conditions & Low & Django ORM transactions; out of scope for current tests \\
-\hline
-RSK-04 & Database migration failures in production & Low & In-memory SQLite used for tests; migrations tested separately \\
-\hline
-\end{tabularx}
-\end{table}
-
-\section{Conclusion of Test Planning}
-
-The test plan for \textbf{InnerVoice AI} provides comprehensive coverage across four test levels with 93 test cases spanning unit, component, API integration, and end-to-end categories. All planned test cases have been executed and passed, satisfying the defined exit criteria. The requirements traceability matrix confirms that every functional requirement is covered by at least one test case. Key quality attributes---including input validation, authentication enforcement, data isolation, cascade integrity, and graceful degradation---have been verified through systematic testing following industry-standard practices.
 
 % ============================================
 % CHAPTER 9: USER MANUAL AND USER INTERFACE
@@ -2090,7 +1693,7 @@ To begin using \textbf{InnerVoice AI}, new users must create an account.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{module-1.png}
+\includegraphics[width=0.85\textwidth]{module-2.png}
 \caption{Fig: Registration Page -- showing the sign-up form with username, email, password fields, password strength indicators, and the ``Create Account'' button.}
 \label{fig:ui_register}
 \end{figure}
@@ -2107,12 +1710,14 @@ Returning users can log in to access their account and analysis history.
     \item Upon successful login, the user is redirected to the \textbf{Dashboard}.
 \end{enumerate}
 
+
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
+\includegraphics[width=0.85\textwidth]{module-1.png}
 \caption{Fig: Login Page -- showing the login form with username and password fields, the ``Sign In'' button, and the link to the registration page.}
 \label{fig:ui_login}
 \end{figure}
+
 
 % ---- 9.2.3 Dashboard ----
 \subsection{Step 3: Exploring the Dashboard}
@@ -2131,18 +1736,29 @@ After logging in, users are taken to the \textbf{Dashboard}, which provides an o
     \item Users can refresh data or navigate to detailed pages from the Dashboard.
 \end{enumerate}
 
-\begin{figure}[H]
-\centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Dashboard Page (Top Section) -- showing summary statistics cards, welcome message, and quick action buttons.}
-\label{fig:ui_dashboard_top}
-\end{figure}
+% \begin{figure}[H]
+% \centering
+% \fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
+% \caption{Fig: Dashboard Page (Top Section) -- showing summary statistics cards, welcome message, and quick action buttons.}
+% \label{fig:ui_dashboard_top}
+% \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Dashboard Page (Charts Section) -- showing the sentiment trend area chart, emotion distribution bar chart, and OCEAN personality radar chart.}
-\label{fig:ui_dashboard_charts}
+\includegraphics[width=0.85\textwidth]{module-4.png}
+\caption{Fig: Dashboard Page (Top Section) – showing summary statistics
+cards, welcome message, and quick action buttons.
+}
+\label{fig:ui_dashboard-top}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{module-5.png}
+\caption{Fig: Dashboard Page (Charts Section) -- showing the sentiment trend area chart, emotion distribution bar chart, and OCEAN personality radar chart.
+}
+\label{fig:ui_dashboard-top}
 \end{figure}
 
 % ---- 9.2.4 Text Analysis ----
@@ -2167,16 +1783,20 @@ The core functionality of \textbf{InnerVoice AI} is text analysis.
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Text Analysis Page (Input Section) -- showing the text input area with a sample Bangla post and the ``Analyze'' button.}
-\label{fig:ui_analyze_input}
+\includegraphics[width=0.85\textwidth]{module-6.png}
+\caption{Fig: Text Analysis Page (Input Section) -- showing the text input area with a sample Bangla post and the ``Analyze'' button.
+}
+\label{fig:ui_text_analysis-input}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Text Analysis Page (Results Section) -- showing sentiment score gauge, detected emotions with percentages, OCEAN personality radar chart, and flagged words.}
-\label{fig:ui_analyze_results}
+\includegraphics[width=0.85\textwidth]{module-7.png}
+\caption{Fig: Text Analysis Page (Results Section) – showing sentiment score
+gauge, detected emotions with percentages, OCEAN personality radar chart, and
+Flagged Words.
+}
+\label{fig:ui_text_analysis-result}
 \end{figure}
 
 % ---- 9.2.5 Text Rewriting ----
@@ -2194,19 +1814,17 @@ When a post contains negative or harsh language, users can use the AI-powered re
     \item Users can \textbf{copy} the rewritten text to use on social media.
 \end{enumerate}
 
-\begin{figure}[H]
-\centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Rewrite Page -- showing the original text with highlighted flagged words, rewriting goal selection options, and the ``Rewrite'' button.}
-\label{fig:ui_rewrite_input}
-\end{figure}
+
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Rewrite Page (Result) -- showing the AI-generated rewritten text alongside the original, with a copy button and comparison view.}
-\label{fig:ui_rewrite_result}
+\includegraphics[width=0.85\textwidth]{module-8.png}
+\caption{Fig: Rewrite Page – showing the original text with highlighted flagged
+words, rewriting goal selection options, and the "Rewrite" button.
+}
+\label{fig:ui_text_rewrite}
 \end{figure}
+
 
 % ---- 9.2.6 Analysis History ----
 \subsection{Step 6: Viewing Analysis History}
@@ -2229,9 +1847,9 @@ Users can review their previously analyzed posts.
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
+\includegraphics[width=0.85\textwidth]{module-9.png}
 \caption{Fig: History Page -- showing the master-detail layout with a list of past analyses on the left (with search, filter, and sort controls) and a detailed analysis report panel on the right.}
-\label{fig:ui_history}
+\label{fig:ui_text_history}
 \end{figure}
 
 % ---- 9.2.7 Progress Tracking ----
@@ -2254,17 +1872,11 @@ Users who analyze posts regularly can track their emotional and personality tren
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
+\includegraphics[width=0.85\textwidth]{module-10.png}
 \caption{Fig: Progress Page (Sentiment \& Emotion Trends) -- showing sentiment trend line chart and emotion frequency charts with time range selector.}
-\label{fig:ui_progress_trends}
+\label{fig:ui_text_history}
 \end{figure}
 
-\begin{figure}[H]
-\centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Progress Page (Behavioral Analytics) -- showing behavioral insights, activity heatmap, language usage patterns, and OCEAN personality evolution radar chart.}
-\label{fig:ui_progress_behavioral}
-\end{figure}
 
 % ---- 9.2.8 Settings ----
 \subsection{Step 8: Managing Settings}
@@ -2285,10 +1897,11 @@ Users can customize their account and application preferences.
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Settings Page -- showing the profile section with avatar upload, display name, email fields, and the sidebar with Appearance, Notifications, Security, and Data \& Privacy sections.}
-\label{fig:ui_settings}
+\includegraphics[width=0.85\textwidth]{module-11.png}
+\caption{Fig: Progress Page (Sentiment \& Emotion Trends) -- showing sentiment trend line chart and emotion frequency charts with time range selector.}
+\label{fig:ui_text_history}
 \end{figure}
+
 
 % ---- 9.2.9 Chrome Extension ----
 \subsection{Step 9: Using the Chrome Extension}
@@ -2308,9 +1921,12 @@ Users can customize their account and application preferences.
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.85\textwidth}{\vspace{6cm}\centering\textit{[Insert Screenshot Here]}\vspace{0.5cm}}}
-\caption{Fig: Chrome Extension Popup -- showing the compact analysis interface with Analyze and History tabs in the browser extension popup.}
-\label{fig:ui_extension}
+\includegraphics[width=0.85\textwidth]{module-12.png}
+\caption{Fig: Text Analysis Page (Results Section) – showing sentiment score
+gauge, detected emotions with percentages, OCEAN personality radar chart, and
+Flagged Words.
+}
+\label{fig:chrome-extension}
 \end{figure}
 
 \section{Features and Functionalities}
