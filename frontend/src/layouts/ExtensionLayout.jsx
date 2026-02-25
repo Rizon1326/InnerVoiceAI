@@ -18,7 +18,9 @@ const iconMap = {
 export default function ExtensionLayout({ children, activeTab, onTabChange }) {
   const { user, logout, isAuthenticated } = useAuth()
   const { resolvedTheme, toggleTheme } = useTheme()
-  const [showSettings, setShowSettings] = React.useState(false)
+
+  // Show settings when the activeTab is 'settings' (bottom nav or header icon)
+  const isSettingsOpen = activeTab === 'settings'
 
   if (!isAuthenticated) {
     return <ExtensionAuthView />
@@ -32,21 +34,21 @@ export default function ExtensionLayout({ children, activeTab, onTabChange }) {
         resolvedTheme={resolvedTheme}
         toggleTheme={toggleTheme}
         onLogout={logout}
-        onSettingsClick={() => setShowSettings(!showSettings)}
+        onSettingsClick={() => onTabChange(isSettingsOpen ? 'analyze' : 'settings')}
       />
 
       {/* Settings Panel (slides over content) */}
-      {showSettings ? (
-        <ExtensionSettings onClose={() => setShowSettings(false)} />
+      {isSettingsOpen ? (
+        <ExtensionSettings onClose={() => onTabChange('analyze')} />
       ) : (
         <>
           {/* Main Content Area */}
           <main className="flex-1 overflow-y-auto p-3">{children}</main>
-
-          {/* Bottom Navigation */}
-          <ExtensionBottomNav activeTab={activeTab} onTabChange={onTabChange} />
         </>
       )}
+
+      {/* Bottom Navigation */}
+      <ExtensionBottomNav activeTab={activeTab} onTabChange={onTabChange} />
     </div>
   )
 }
