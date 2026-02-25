@@ -209,7 +209,12 @@ export function HighlightedText({
     }
   }, [activeWord])
 
-  const hasHighlights = highlightPatterns.length > 0
+  // Count only the words that are actually highlighted in the text
+  const actualHighlightCount = React.useMemo(() => {
+    return segments.filter(s => s.isHighlighted).length
+  }, [segments])
+
+  const hasHighlights = actualHighlightCount > 0
 
   return (
     <div className={cn('relative', className)} ref={containerRef}>
@@ -312,9 +317,9 @@ export function HighlightedText({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex w-4 h-4 rounded-full bg-red-500/20 items-center justify-center text-[10px]">
-              {highlightPatterns.length}
+              {actualHighlightCount}
             </span>
-            <span>words flagged</span>
+            <span>words highlighted</span>
           </div>
         </div>
       )}
