@@ -1718,57 +1718,15 @@ Users can customize their account and application preferences.
 
 \section{Challenges Addressed by InnerVoiceAI}
 
-\textbf{InnerVoice AI} addresses several important challenges in the domain of Bangla social media text analysis:
+\textbf{InnerVoice AI} addresses several key challenges in Bangla social media text analysis:
 
-\subsection{Lack of Bangla NLP Tools}
+\textbf{Lack of Bangla NLP Tools.} English NLP tools are widely available, but tools for Bangla social media text are extremely limited. InnerVoice AI fills this gap with purpose-built sentiment, emotion, and personality analysis for Bangla.
 
-While English-language NLP tools are widely available, tools for Bangla text analysis---especially for social media content---are extremely limited. \textbf{InnerVoice AI} fills this gap by providing comprehensive sentiment, emotion, and personality analysis specifically designed for Bangla text.
+\textbf{Banglish Processing.} A large portion of Bangla social media content uses Banglish (Bangla written in Roman script), with no standard romanization scheme. A dedicated \texttt{BanglaProcessor} handles transliteration and normalization using a Banglish dictionary and heuristic rules.
 
-\subsection{Banglish Processing Challenge}
+\textbf{Context-Dependent Sentiment.} Bangla negation, sarcasm, and informal slang make simple keyword-based analysis unreliable. The \texttt{ContextAnalyzer} handles negation patterns, intensifiers, and contextual meaning to produce accurate sentiment scores.
 
-A significant portion of Bangla social media content is written in Banglish (romanized Bangla). Processing Banglish is challenging because:
-
-\begin{itemize}
-    \item There is no standardized romanization scheme for Bangla
-    \item Multiple English spellings can represent the same Bangla word
-    \item Banglish text often mixes with English words within the same sentence
-\end{itemize}
-
-\textbf{InnerVoice AI} addresses this through a dedicated \texttt{BanglaProcessor} with a Banglish dictionary and heuristic transliteration engine.
-
-\subsection{Context-Dependent Sentiment in Bangla}
-
-Bangla sentiment analysis is difficult because:
-
-\begin{itemize}
-    \item Negation patterns differ from English (e.g., negation often appears at the end of a clause)
-    \item Sarcasm and irony are common in social media Bangla
-    \item Informal language, slang, and abbreviations change rapidly
-\end{itemize}
-
-The \texttt{ContextAnalyzer} service addresses these challenges by considering contextual clues, negation handling, and intensifier/diminisher patterns.
-
-\subsection{Lack of Self-Awareness in Digital Communication}
-
-Many social media users are unaware of how their posts reflect their emotional state and personality. \textbf{InnerVoice AI} promotes self-awareness by:
-
-\begin{itemize}
-    \item Providing instant feedback on the emotional tone of text
-    \item Highlighting personality traits revealed through language use
-    \item Tracking emotional patterns over time to show progress
-    \item Offering constructive rewriting suggestions for negative content
-\end{itemize}
-
-\subsection{Promoting Positive Online Communication}
-
-Toxic and negative language on social media is a growing concern. \textbf{InnerVoice AI} contributes to healthier online spaces by:
-
-\begin{itemize}
-    \item Detecting negative or harsh language before it is posted
-    \item Suggesting empathetic and constructive alternatives
-    \item Encouraging users to reflect on their communication style
-    \item Providing measurable progress toward more positive expression
-\end{itemize}
+\textbf{Promoting Self-Awareness and Positive Communication.} Many users are unaware of the emotional tone their posts project. InnerVoice AI provides immediate feedback, tracks emotional patterns over time, and offers AI-powered rewriting suggestions to help users communicate more constructively online.
 
 \section{Access Frontend and Backend Code}
 
