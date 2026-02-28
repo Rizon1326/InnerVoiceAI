@@ -1444,8 +1444,6 @@ All 33 test cases across four test levels have been executed and passed. Every f
 % ============================================
 \chapter{User Manual and User Interface}
 
-This chapter provides a comprehensive guide to using \textbf{InnerVoice AI}, including a system overview, step-by-step user manual with interface screenshots, detailed feature descriptions, the challenges the system addresses, and instructions for accessing the frontend and backend codebases.
-
 \section{System Overview}
 
 \textbf{InnerVoice AI} is a web-based application with an optional Chrome Extension that analyzes Bangla (and Banglish) social media posts to extract emotional insights, personality traits, and communication patterns. The system is built using a modern client--server architecture:
@@ -1463,8 +1461,6 @@ This chapter provides a comprehensive guide to using \textbf{InnerVoice AI}, inc
 The system supports three language modes: pure Bangla (Unicode), Banglish (Bangla written in English script), and English---automatically detecting the language and applying appropriate analysis pipelines.
 
 \section{User Manual}
-
-This section provides a step-by-step guide to using \textbf{InnerVoice AI}, accompanied by placeholder screenshots. Each placeholder box indicates where a screenshot of the corresponding page or feature should be inserted.
 
 % ---- 9.2.1 Registration ----
 \subsection{Step 1: User Registration}
@@ -1692,8 +1688,8 @@ Users can customize their account and application preferences.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{module-11.png}
-\caption{Fig: Progress Page (Sentiment \& Emotion Trends) -- showing sentiment trend line chart and emotion frequency charts with time range selector.}
-\label{fig:ui_text_history}
+\caption{Fig: Settings Page -- showing profile update, appearance (theme), security (password change), and data \& privacy (export/delete) sections.}
+\label{fig:ui_settings}
 \end{figure}
 
 
@@ -1716,129 +1712,9 @@ Users can customize their account and application preferences.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.85\textwidth]{module-12.png}
-\caption{Fig: Text Analysis Page (Results Section) – showing sentiment score
-gauge, detected emotions with percentages, OCEAN personality radar chart, and
-Flagged Words.
-}
+\caption{Fig: Chrome Extension popup -- showing the Analyze tab for quick text input and the History tab for recent results.}
 \label{fig:chrome-extension}
 \end{figure}
-
-\section{Features and Functionalities}
-
-This section details the key features and functionalities offered by \textbf{InnerVoice AI}.
-
-\subsection{Multi-Language Text Analysis}
-
-\textbf{InnerVoice AI} supports three language modes:
-
-\begin{itemize}
-    \item \textbf{Bangla (Unicode):} Native Bangla text written in the Bengali script.
-    \item \textbf{Banglish:} Bangla language written using English alphabet (romanized Bangla), which is extremely common on social media.
-    \item \textbf{English:} Standard English text.
-\end{itemize}
-
-The system employs a \texttt{LanguageDetector} service that automatically identifies the input language and applies the appropriate processing pipeline. A dedicated \texttt{BanglaProcessor} handles Banglish-to-Bangla transliteration and normalization.
-
-\subsection{Context-Aware Sentiment Analysis}
-
-The sentiment analysis pipeline goes beyond simple keyword matching. The \texttt{ContextAnalyzer} service considers:
-
-\begin{itemize}
-    \item Negation handling (e.g., ``ভালো না'' meaning ``not good'')
-    \item Intensifier and diminisher words
-    \item Contextual meaning of words based on surrounding text
-    \item Mixed-language sentiment resolution
-\end{itemize}
-
-Sentiment is scored on a continuous scale and categorized as positive, negative, or neutral with a confidence level.
-
-\subsection{Emotion Detection}
-
-The \texttt{EmotionDetector} service identifies specific emotions present in the text, including:
-
-\begin{itemize}
-    \item Joy / Happiness
-    \item Anger
-    \item Sadness
-    \item Fear / Anxiety
-    \item Surprise
-    \item Disgust
-\end{itemize}
-
-Each emotion is assigned a confidence percentage, and the dominant emotion is highlighted in the results.
-
-\subsection{OCEAN Personality Assessment}
-
-The \texttt{PersonalityAnalyzer} service maps linguistic patterns to the Big Five (OCEAN) personality traits:
-
-\begin{itemize}
-    \item \textbf{Openness (O):} Creativity, curiosity, and openness to new experiences.
-    \item \textbf{Conscientiousness (C):} Organization, dependability, and self-discipline.
-    \item \textbf{Extraversion (E):} Sociability, assertiveness, and positive emotions.
-    \item \textbf{Agreeableness (A):} Cooperation, trust, and empathy.
-    \item \textbf{Neuroticism (N):} Emotional instability, anxiety, and moodiness.
-\end{itemize}
-
-Personality scores are computed based on word usage patterns, sentence structure, and emotional indicators, and are displayed as a radar chart.
-
-\subsection{AI-Powered Text Rewriting}
-
-When negative or emotionally charged text is detected, the \texttt{TextRewriter} service, powered by Google Gemini AI, generates improved versions of the text. Key features include:
-
-\begin{itemize}
-    \item Preserving the original meaning and intent
-    \item Adjusting tone based on user-selected goals (positive, empathetic, professional, calm)
-    \item Highlighting specific words or phrases that were changed
-    \item Supporting rewriting in both Bangla and English
-\end{itemize}
-
-\subsection{Analysis History and Search}
-
-All analyses are stored in the user's account with full details. The history system provides:
-
-\begin{itemize}
-    \item Chronological listing of all past analyses
-    \item Full-text search across analyzed posts
-    \item Filtering by sentiment type (positive, negative, neutral)
-    \item Sorting by date (newest/oldest)
-    \item Paginated navigation for large histories
-    \item Detailed report view for each past analysis
-\end{itemize}
-
-\subsection{Progress Tracking and Behavioral Analytics}
-
-The \texttt{ProgressTracker} and \texttt{BehavioralAnalytics} services provide longitudinal insights:
-
-\begin{itemize}
-    \item \textbf{Sentiment trends:} How overall sentiment changes over time
-    \item \textbf{Emotion frequency:} Which emotions appear most often in the user's posts
-    \item \textbf{Personality evolution:} How OCEAN trait scores shift over time
-    \item \textbf{Activity patterns:} Posting frequency and analysis habits
-    \item \textbf{Language usage:} Distribution of Bangla, Banglish, and English usage
-    \item \textbf{Emotional streaks:} Consecutive positive or negative sentiment patterns
-\end{itemize}
-
-\subsection{User Authentication and Data Security}
-
-The system implements robust authentication and data security:
-
-\begin{itemize}
-    \item Token-based authentication using Django REST Framework's \texttt{TokenAuthentication}
-    \item Password validation with strength requirements
-    \item Secure logout with token invalidation
-    \item User-specific data isolation (each user can only access their own data)
-    \item Data export functionality (download all personal data as JSON)
-    \item Account deletion with cascade removal of all associated data
-\end{itemize}
-
-\subsection{Dual Interface: Web and Chrome Extension}
-
-\textbf{InnerVoice AI} offers two user interfaces:
-
-\begin{itemize}
-    \item \textbf{Web Application:} Full-featured interface with Dashboard, Analyze, Rewrite, History, Progress, and Settings pages. Supports responsive design with dark/light theme switching.
-    \item \textbf{Chrome Extension:} Lightweight popup interface (400$\times$600 px) for quick analysis and history access directly from the browser toolbar.
-\end{itemize}
 
 \section{Challenges Addressed by InnerVoiceAI}
 
@@ -1995,7 +1871,7 @@ To run the backend test suite:
     python -m pytest tests/ -v --tb=short
 \end{verbatim}
 
-This executes all 93 test cases covering unit, component, API integration, and end-to-end tests as described in Chapter~8 (Test Planning).
+This executes all 33 test cases covering unit, component, API integration, and end-to-end tests as described in Chapter~8 (Test Planning).
 
 \subsection{API Endpoints Reference}
 
